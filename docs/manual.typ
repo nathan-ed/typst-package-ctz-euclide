@@ -1,4 +1,4 @@
-#import "@preview/ctz-euclide:0.1.0": *
+#import "../src/lib.typ": *
 
 // ==============================================================================
 // DOCUMENT SETUP
@@ -143,7 +143,7 @@
 Import the package in your Typst document:
 
 ```typst
-#import "@preview/ctz-euclide:0.1.0": *
+#import "../src/lib.typ": *
 ```
 
 All figures use the `ctz-canvas` function (re-exported from CeTZ):
