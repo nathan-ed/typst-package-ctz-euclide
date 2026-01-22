@@ -92,27 +92,32 @@ Contributions, bug reports, feature requests, and feedback are warmly welcomed! 
 ```typst
 #import "@preview/ctz-euclide:0.1.0": *
 
-#canvas({
+#ctz-canvas({
   import cetz.draw: *
 
-  init()
-  style(point: (shape: "cross", size: 0.1, stroke: black + 1.5pt))
+  ctz-init()
+  ctz-style(point: (shape: "cross", size: 0.1, stroke: black + 1.5pt))
 
   // Define points
-  pts(A: (0, 0), B: (4, 0), C: (2, 3))
+  ctz-def-points(A: (0, 0), B: (4, 0), C: (2, 3))
 
   // Draw triangle
-  line("A", "B", "C", "A", stroke: black)
+  ctz-draw-line("A", "B", "C", "A", stroke: black)
 
   // Mark points and add labels
-  points("A", "B", "C")
-  labels("A", "B", "C",
+  ctz-draw-points("A", "B", "C")
+  ctz-draw-labels("A", "B", "C",
     A: "below left", B: "below right", C: "above")
 
   // Mark an angle
-  angle("A", "B", "C", label: $alpha$, radius: 0.5)
+  ctz-draw-angle("A", "B", "C", label: $alpha$, radius: 0.5)
 })
 ```
+
+Naming notes:
+- All public functions are prefixed with `ctz-` to avoid conflicts.
+- Point creation and drawing use `ctz-def-points` and `ctz-draw-points`.
+- Other constructors use `ctz-def-*`, and drawing utilities use `ctz-draw-*`.
 
 ## Features
 
@@ -131,63 +136,63 @@ Contributions, bug reports, feature requests, and feedback are warmly welcomed! 
 
 ```typst
 // Define points
-pts(A: (0, 0), B: (3, 0), C: (1.5, 2.5))
+ctz-def-points(A: (0, 0), B: (3, 0), C: (1.5, 2.5))
 ```
 
 ### Transformations
 
 ```typst
 // Rotation
-rotation("B", "A", "O", 60)  // Rotate A around O by 60°
+ctz-def-rotation("B", "A", "O", 60)  // Rotate A around O by 60°
 
 // Reflection
-reflect("C", "A", "P", "Q")  // Reflect A across line PQ
+ctz-def-reflect("C", "A", "P", "Q")  // Reflect A across line PQ
 
 // Translation
-translate("D", "A", (2, 3))  // Translate A by vector (2, 3)
+ctz-def-translate("D", "A", (2, 3))  // Translate A by vector (2, 3)
 ```
 
 ### Intersections
 
 ```typst
 // Line-line intersection
-ll("E", ("A", "B"), ("C", "D"))
+ctz-def-ll("E", ("A", "B"), ("C", "D"))
 
 // Line-circle intersection
-lc(("F", "G"), ("A", "B"), ("O", "P"))
+ctz-def-lc(("F", "G"), ("A", "B"), ("O", "P"))
 
 // Circle-circle intersection
-cc(("H", "I"), ("O1", "P1"), ("O2", "P2"))
+ctz-def-cc(("H", "I"), ("O1", "P1"), ("O2", "P2"))
 ```
 
 ### Triangle Centers
 
 ```typst
 // Centroid
-centroid("G", "A", "B", "C")
+ctz-def-centroid("G", "A", "B", "C")
 
 // Circumcenter
-circumcenter("O", "A", "B", "C")
+ctz-def-circumcenter("O", "A", "B", "C")
 
 // Incenter
-incenter("I", "A", "B", "C")
+ctz-def-incenter("I", "A", "B", "C")
 
 // Orthocenter
-orthocenter("H", "A", "B", "C")
+ctz-def-orthocenter("H", "A", "B", "C")
 ```
 
 ### Drawing
 
 ```typst
 // Draw points
-points("A", "B", "C")
+ctz-draw-points("A", "B", "C")
 
 // Add labels
-labels("A", "B", "C",
+ctz-draw-labels("A", "B", "C",
   A: "below left", B: "below right", C: "above")
 
 // Mark angles
-angle("B", "A", "C", label: $alpha$, radius: 0.6)
+ctz-draw-angle("B", "A", "C", label: $alpha$, radius: 0.6)
 ```
 
 ## Advanced Features

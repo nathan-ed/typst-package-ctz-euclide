@@ -2,24 +2,24 @@
 
 #set page(width: auto, height: auto, margin: 0.3cm)
 
-#canvas(length: 1cm, {
+#ctz-canvas(length: 1cm, {
   import cetz.draw: *
 
-  init()
-  style(point: (shape: "cross", size: 0.11, stroke: black + 1.2pt))
+  ctz-init()
+  ctz-style(point: (shape: "cross", size: 0.11, stroke: black + 1.2pt))
 
-  pts(O: (0, 0), R: (4, 0))
-  circle("O", radius: 4, stroke: black + 1.2pt)
+  ctz-def-points(O: (0, 0), R: (4, 0))
+  ctz-draw-circle-r("O", 4, stroke: black + 1.2pt)
 
   // Place points on circle: A left, C right, B at bottom
-  rotation("A", "R", "O", 150)
-  rotation("C", "R", "O", 30)
-  rotation("B", "R", "O", 250)
+  ctz-def-rotation("A", "R", "O", 150)
+  ctz-def-rotation("C", "R", "O", 30)
+  ctz-def-rotation("B", "R", "O", 250)
 
   // Inscribed angle at B (looking up at chord AC)
-  line("A", "B", stroke: blue + 1.2pt)
-  line("B", "C", stroke: blue + 1.2pt)
-  angle(
+  ctz-draw-line("A", "B", stroke: blue + 1.2pt)
+  ctz-draw-line("B", "C", stroke: blue + 1.2pt)
+  ctz-draw-angle(
     "B",
     "A",
     "C",
@@ -30,9 +30,9 @@
   )
 
   // Central angle at O (same chord AC)
-  line("O", "A", stroke: red + 1.2pt)
-  line("O", "C", stroke: red + 1.2pt)
-  angle(
+  ctz-draw-line("O", "A", stroke: red + 1.2pt)
+  ctz-draw-line("O", "C", stroke: red + 1.2pt)
+  ctz-draw-angle(
     "O",
     "A",
     "C",
@@ -43,10 +43,10 @@
   )
 
   // Arc
-  line("A", "C", stroke: gray.lighten(40%) + 0.8pt)
+  ctz-draw-line("A", "C", stroke: gray.lighten(40%) + 0.8pt)
 
-  points("O", "A", "B", "C")
-  labels(
+  ctz-draw-points("O", "A", "B", "C")
+  ctz-draw-labels(
     "O",
     "A",
     "B",

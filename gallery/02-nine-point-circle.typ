@@ -2,46 +2,46 @@
 
 #set page(width: auto, height: auto, margin: 0.3cm)
 
-#canvas(length: 0.9cm, {
+#ctz-canvas(length: 0.9cm, {
   import cetz.draw: *
 
-  init()
-  style(point: (
+  ctz-init()
+  ctz-style(point: (
     shape: "circle",
     size: 0.06,
     stroke: black + 0.8pt,
     fill: white,
   ))
 
-  pts(A: (0, 0), B: (7, 0), C: (2, 5))
-  line("A", "B", "C", "A", stroke: black + 1.5pt)
+  ctz-def-points(A: (0, 0), B: (7, 0), C: (2, 5))
+  ctz-draw-line("A", "B", "C", "A", stroke: black + 1.5pt)
 
   // Midpoints of sides
-  midpoint("Ma", "B", "C")
-  midpoint("Mb", "A", "C")
-  midpoint("Mc", "A", "B")
+  ctz-def-midpoint("Ma", "B", "C")
+  ctz-def-midpoint("Mb", "A", "C")
+  ctz-def-midpoint("Mc", "A", "B")
 
   // Feet of altitudes
-  project("Ha", "A", "B", "C")
-  project("Hb", "B", "A", "C")
-  project("Hc", "C", "A", "B")
+  ctz-def-project("Ha", "A", "B", "C")
+  ctz-def-project("Hb", "B", "A", "C")
+  ctz-def-project("Hc", "C", "A", "B")
 
   // Orthocenter and midpoints to vertices
-  orthocenter("H", "A", "B", "C")
-  midpoint("MHa", "H", "A")
-  midpoint("MHb", "H", "B")
-  midpoint("MHc", "H", "C")
+  ctz-def-orthocenter("H", "A", "B", "C")
+  ctz-def-midpoint("MHa", "H", "A")
+  ctz-def-midpoint("MHb", "H", "B")
+  ctz-def-midpoint("MHc", "H", "C")
 
   // Nine-point circle
-  euler("N", "A", "B", "C")
-  circle("N", "Ma", stroke: purple.darken(10%) + 1.2pt)
+  ctz-def-euler("N", "A", "B", "C")
+  ctz-draw-circle-through("N", "Ma", stroke: purple.darken(10%) + 1.2pt)
 
   // Draw altitudes
-  line("A", "Ha", stroke: blue.lighten(30%) + 0.7pt)
-  line("B", "Hb", stroke: blue.lighten(30%) + 0.7pt)
-  line("C", "Hc", stroke: blue.lighten(30%) + 0.7pt)
+  ctz-draw-line("A", "Ha", stroke: blue.lighten(30%) + 0.7pt)
+  ctz-draw-line("B", "Hb", stroke: blue.lighten(30%) + 0.7pt)
+  ctz-draw-line("C", "Hc", stroke: blue.lighten(30%) + 0.7pt)
 
-  points(
+  ctz-draw-points(
     "A",
     "B",
     "C",
@@ -57,7 +57,7 @@
     "MHc",
     "H",
   )
-  labels(
+  ctz-draw-labels(
     "A",
     "B",
     "C",

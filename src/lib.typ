@@ -16,10 +16,10 @@
 #import "circle.typ"
 
 /// Package version
-#let version = (0, 1, 0)
+#let _version = (0, 1, 0)
 
 // Re-export cetz canvas for convenience
-#let canvas = cetz.canvas
+#let _canvas = cetz.canvas
 
 /// Internal key for storing points in shared-state
 #let _points-key = "tkz-points"
@@ -36,7 +36,7 @@
 }
 
 /// Custom coordinate resolver - accepts both "A" and "ctz:A" syntax
-#let tkz-coordinate-resolver(ctx, c) = {
+#let _ctz-coordinate-resolver(ctx, c) = {
   if type(c) == str {
     let points = _get-points(ctx)
     // Try with "ctz:" prefix first
@@ -56,7 +56,7 @@
 
 /// Initialize ctz-euclide in a cetz canvas
 /// Must be called at the start of canvas body
-#let init() = {
+#let _init() = {
   cetz.draw.set-ctx(ctx => {
     // Initialize shared state for point storage
     if _points-key not in ctx.shared-state {
@@ -66,8 +66,8 @@
     if type(ctx.resolve-coordinate) != array {
       ctx.resolve-coordinate = ()
     }
-    if tkz-coordinate-resolver not in ctx.resolve-coordinate {
-      ctx.resolve-coordinate.push(tkz-coordinate-resolver)
+    if _ctz-coordinate-resolver not in ctx.resolve-coordinate {
+      ctx.resolve-coordinate.push(_ctz-coordinate-resolver)
     }
     ctx
   })
@@ -89,38 +89,38 @@
       }
     }
     // Fall back to cetz coordinate resolution
-    let (_, pt) = cetz.coordinate.resolve(ctx, p)
-    return pt
+    let (_, _pt) = cetz.coordinate.resolve(ctx, p)
+    return _pt
   } else if type(p) == array {
     if p.len() >= 2 and p.len() <= 3 and p.all(x => type(x) in (int, float)) {
       return if p.len() == 2 { (p.at(0), p.at(1), 0) } else { p }
     }
-    let (_, pt) = cetz.coordinate.resolve(ctx, p)
-    return pt
+    let (_, _pt) = cetz.coordinate.resolve(ctx, p)
+    return _pt
   } else if type(p) == dictionary {
-    let (_, pt) = cetz.coordinate.resolve(ctx, p)
-    return pt
+    let (_, _pt) = cetz.coordinate.resolve(ctx, p)
+    return _pt
   }
   panic("Cannot resolve point: " + repr(p))
 }
 
 /// Helper to convert point name to ctz: coordinate
-#let pt(name) = "ctz:" + name
+#let _pt(name) = "ctz:" + name
 
 /// Define multiple points at once
-#let pts(..points) = {
+#let _pts(..points) = {
   let pairs = if points.named() != (:) {
     points.named().pairs()
   } else {
     let pos = points.pos()
     assert(calc.rem(pos.len(), 2) == 0,
-      message: "tkz-def-points requires name-coordinate pairs")
+      message: "ctz-pts requires name-coordinate pairs")
     range(0, pos.len(), step: 2).map(i => (pos.at(i), pos.at(i + 1)))
   }
 
   (ctx => {
     for (name, coord) in pairs {
-      let pt = if type(coord) == array and coord.len() >= 2 and coord.len() <= 3 and coord.all(x => type(x) in (int, float, length)) {
+      let _pt = if type(coord) == array and coord.len() >= 2 and coord.len() <= 3 and coord.all(x => type(x) in (int, float, length)) {
         let resolve-num(v) = if type(v) == length { v / 1cm } else { v }
         let x = resolve-num(coord.at(0))
         let y = resolve-num(coord.at(1))
@@ -133,7 +133,7 @@
       }
 
       let stored = _get-points(ctx)
-      stored.insert(name, pt)
+      stored.insert(name, _pt)
       ctx = _set-points(ctx, stored)
     }
     (ctx: ctx)
@@ -141,7 +141,7 @@
 }
 
 /// Line-line intersection
-#let ll(name, line1, line2, ray: true) = {
+#let _ll(name, line1, line2, ray: true) = {
   (ctx => {
     let p1 = _resolve-point(ctx, line1.at(0))
     let p2 = _resolve-point(ctx, line1.at(1))
@@ -166,23 +166,23 @@
     let radius = if "radius" in circle-spec {
       if type(circle-spec.radius) == length { circle-spec.radius / 1cm } else { circle-spec.radius }
     } else if "through" in circle-spec {
-      let pt = _resolve-point(ctx, circle-spec.through)
-      util.dist(center, pt)
+      let _pt = _resolve-point(ctx, circle-spec.through)
+      util.dist(center, _pt)
     } else {
       panic("Circle needs radius or through point")
     }
     (center, radius)
   } else if type(circle-spec) == array and circle-spec.len() == 2 {
     let center = _resolve-point(ctx, circle-spec.at(0))
-    let pt = _resolve-point(ctx, circle-spec.at(1))
-    (center, util.dist(center, pt))
+    let _pt = _resolve-point(ctx, circle-spec.at(1))
+    (center, util.dist(center, _pt))
   } else {
     panic("Invalid circle specification: " + repr(circle-spec))
   }
 }
 
 /// Line-circle intersection
-#let lc(result-names, line, circle-spec, near: none) = {
+#let _lc(result-names, line, circle-spec, near: none) = {
   (ctx => {
     let la = _resolve-point(ctx, line.at(0))
     let lb = _resolve-point(ctx, line.at(1))
@@ -192,14 +192,14 @@
 
     if near != none and results.len() > 1 {
       let near-pt = _resolve-point(ctx, near)
-      results = results.sorted(key: pt => util.dist-sq(near-pt, pt))
+      results = results.sorted(key: _pt => util.dist-sq(near-pt, _pt))
     }
 
     let names = if type(result-names) == str { (result-names,) } else { result-names }
     let points = _get-points(ctx)
-    for (i, pt-name) in names.enumerate() {
+    for (i, _pt-name) in names.enumerate() {
       if i < results.len() {
-        points.insert(pt-name, results.at(i))
+        points.insert(_pt-name, results.at(i))
       }
     }
     ctx = _set-points(ctx, points)
@@ -209,7 +209,7 @@
 }
 
 /// Circle-circle intersection
-#let cc(result-names, circle1, circle2) = {
+#let _cc(result-names, circle1, circle2) = {
   (ctx => {
     let (c0, r0) = _parse-circle(ctx, circle1)
     let (c1, r1) = _parse-circle(ctx, circle2)
@@ -218,9 +218,9 @@
 
     let names = if type(result-names) == str { (result-names,) } else { result-names }
     let points = _get-points(ctx)
-    for (i, pt-name) in names.enumerate() {
+    for (i, _pt-name) in names.enumerate() {
       if i < results.len() {
-        points.insert(pt-name, results.at(i))
+        points.insert(_pt-name, results.at(i))
       }
     }
     ctx = _set-points(ctx, points)
@@ -230,7 +230,7 @@
 }
 
 /// Triangle centroid
-#let centroid(name, a, b, c) = {
+#let _centroid(name, a, b, c) = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -245,7 +245,7 @@
 }
 
 /// Triangle circumcenter
-#let circumcenter(name, a, b, c) = {
+#let _circumcenter(name, a, b, c) = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -260,7 +260,7 @@
 }
 
 /// Triangle incenter
-#let incenter(name, a, b, c) = {
+#let _incenter(name, a, b, c) = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -275,7 +275,7 @@
 }
 
 /// Triangle orthocenter
-#let orthocenter(name, a, b, c) = {
+#let _orthocenter(name, a, b, c) = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -294,7 +294,7 @@
 // =============================================================================
 
 /// Nine-point (Euler) circle center
-#let euler(name, a, b, c) = {
+#let _euler(name, a, b, c) = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -308,7 +308,7 @@
 }
 
 /// Lemoine point (symmedian point)
-#let lemoine(name, a, b, c) = {
+#let _lemoine(name, a, b, c) = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -322,7 +322,7 @@
 }
 
 /// Nagel point
-#let nagel(name, a, b, c) = {
+#let _nagel(name, a, b, c) = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -336,7 +336,7 @@
 }
 
 /// Gergonne point
-#let gergonne(name, a, b, c) = {
+#let _gergonne(name, a, b, c) = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -350,7 +350,7 @@
 }
 
 /// Spieker center
-#let spieker(name, a, b, c) = {
+#let _spieker(name, a, b, c) = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -364,7 +364,7 @@
 }
 
 /// Feuerbach point
-#let feuerbach(name, a, b, c) = {
+#let _feuerbach(name, a, b, c) = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -378,7 +378,7 @@
 }
 
 /// Mittenpunkt
-#let mittenpunkt(name, a, b, c) = {
+#let _mittenpunkt(name, a, b, c) = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -392,7 +392,7 @@
 }
 
 /// Excenter (opposite to specified vertex)
-#let excenter(name, a, b, c, vertex: "a") = {
+#let _excenter(name, a, b, c, vertex: "a") = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -410,7 +410,7 @@
 // =============================================================================
 
 /// Define medial triangle vertices
-#let medial(name-a, name-b, name-c, a, b, c) = {
+#let _medial(name-a, name-b, name-c, a, b, c) = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -426,7 +426,7 @@
 }
 
 /// Define orthic triangle vertices
-#let orthic(name-a, name-b, name-c, a, b, c) = {
+#let _orthic(name-a, name-b, name-c, a, b, c) = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -442,7 +442,7 @@
 }
 
 /// Define intouch triangle vertices
-#let intouch(name-a, name-b, name-c, a, b, c) = {
+#let _intouch(name-a, name-b, name-c, a, b, c) = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -462,7 +462,7 @@
 // =============================================================================
 
 /// Define midpoint of segment AB
-#let midpoint(name, a, b) = {
+#let _midpoint(name, a, b) = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -475,7 +475,7 @@
 }
 
 /// Define equilateral triangle third point
-#let equilateral(name, a, b) = {
+#let _equilateral(name, a, b) = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -488,7 +488,7 @@
 }
 
 /// Define square third and fourth points
-#let square(name-c, name-d, a, b) = {
+#let _square(name-c, name-d, a, b) = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -502,7 +502,7 @@
 }
 
 /// Define golden ratio point
-#let golden(name, a, b) = {
+#let _golden(name, a, b) = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -515,7 +515,7 @@
 }
 
 /// Define barycentric point
-#let barycentric(name, a, b, c, wa, wb, wc) = {
+#let _barycentric(name, a, b, c, wa, wb, wc) = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -529,7 +529,7 @@
 }
 
 /// Define point on circle at angle
-#let point-on-circle(name, center, radius, angle-deg) = {
+#let _point-on-circle(name, center, radius, angle-deg) = {
   (ctx => {
     let c = _resolve-point(ctx, center)
     let r = if type(radius) == length { radius / 1cm } else { radius }
@@ -542,7 +542,7 @@
 }
 
 /// Define regular polygon vertices
-#let regular-polygon(names, center, first-vertex) = {
+#let _regular-polygon(names, center, first-vertex) = {
   (ctx => {
     let c = _resolve-point(ctx, center)
     let fv = _resolve-point(ctx, first-vertex)
@@ -558,7 +558,7 @@
 }
 
 /// Define linear combination point: P = A + k*(B-A)
-#let linear(name, a, b, k) = {
+#let _linear(name, a, b, k) = {
   (ctx => {
     let pa = _resolve-point(ctx, a)
     let pb = _resolve-point(ctx, b)
@@ -571,7 +571,7 @@
 }
 
 /// Define central symmetry point
-#let symmetry(name, source, center) = {
+#let _symmetry(name, source, center) = {
   (ctx => {
     let p = _resolve-point(ctx, source)
     let c = _resolve-point(ctx, center)
@@ -584,7 +584,7 @@
 }
 
 /// Define circle inversion point
-#let inversion(name, source, center, radius) = {
+#let _inversion(name, source, center, radius) = {
   (ctx => {
     let p = _resolve-point(ctx, source)
     let c = _resolve-point(ctx, center)
@@ -602,7 +602,7 @@
 // =============================================================================
 
 /// Define tangent points from external point to circle
-#let tangent-from(name1, name2, external-point, center, radius) = {
+#let _tangent-from(name1, name2, external-point, center, radius) = {
   (ctx => {
     let p = _resolve-point(ctx, external-point)
     let c = _resolve-point(ctx, center)
@@ -617,7 +617,7 @@
 }
 
 /// Define tangent line at point on circle
-#let tangent-at(name1, name2, point-on-circle, center) = {
+#let _tangent-at(name1, name2, point-on-circle, center) = {
   (ctx => {
     let p = _resolve-point(ctx, point-on-circle)
     let c = _resolve-point(ctx, center)
@@ -631,7 +631,7 @@
 }
 
 /// Define radical axis of two circles
-#let radical-axis(name1, name2, center1, radius1, center2, radius2) = {
+#let _radical-axis(name1, name2, center1, radius1, center2, radius2) = {
   (ctx => {
     let c1 = _resolve-point(ctx, center1)
     let c2 = _resolve-point(ctx, center2)
@@ -650,7 +650,7 @@
 }
 
 /// Define point by rotation around a center
-#let rotation(name, source, center, angle-deg) = {
+#let _rotation(name, source, center, angle-deg) = {
   (ctx => {
     let src = _resolve-point(ctx, source)
     let ctr = _resolve-point(ctx, center)
@@ -664,7 +664,7 @@
 }
 
 /// Define point by reflection across a line
-#let reflect(name, source, line-a, line-b) = {
+#let _reflect(name, source, line-a, line-b) = {
   (ctx => {
     let src = _resolve-point(ctx, source)
     let la = _resolve-point(ctx, line-a)
@@ -679,7 +679,7 @@
 }
 
 /// Define point by translation
-#let translate(name, source, vector) = {
+#let _translate(name, source, vector) = {
   (ctx => {
     let src = _resolve-point(ctx, source)
     let vec = if type(vector) == array {
@@ -699,7 +699,7 @@
 }
 
 /// Define point by homothety (scaling from center)
-#let homothety(name, source, center, factor) = {
+#let _homothety(name, source, center, factor) = {
   (ctx => {
     let src = _resolve-point(ctx, source)
     let ctr = _resolve-point(ctx, center)
@@ -713,7 +713,7 @@
 }
 
 /// Define point by projection onto line
-#let project(name, source, line-a, line-b) = {
+#let _project(name, source, line-a, line-b) = {
   (ctx => {
     let src = _resolve-point(ctx, source)
     let la = _resolve-point(ctx, line-a)
@@ -731,7 +731,7 @@
 #let _point-style-key = "tkz-point-style"
 
 /// Set up default point style
-#let set-up-point(style-spec) = {
+#let _set-up-point(style-spec) = {
   cetz.draw.set-ctx(ctx => {
     ctx.shared-state.insert(_point-style-key, style-spec)
     ctx
@@ -805,112 +805,115 @@
 }
 
 // Line construction helpers
-#let perp(name1, name2, line, through) = _def-line(name1, name2, (type: "perpendicular", line: line, through: through))
-#let para(name1, name2, line, through) = _def-line(name1, name2, (type: "parallel", line: line, through: through))
-#let bisect(name1, name2, a, vertex, c) = _def-line(name1, name2, (type: "bisector", points: (a, vertex, c)))
-#let mediator(name1, name2, a, b) = _def-line(name1, name2, (type: "mediator", segment: (a, b)))
+#let _perp(name1, name2, line, through) = _def-line(name1, name2, (type: "perpendicular", line: line, through: through))
+#let _para(name1, name2, line, through) = _def-line(name1, name2, (type: "parallel", line: line, through: through))
+#let _bisect(name1, name2, a, vertex, c) = _def-line(name1, name2, (type: "bisector", points: (a, vertex, c)))
+#let _mediator(name1, name2, a, b) = _def-line(name1, name2, (type: "mediator", segment: (a, b)))
 
 // =============================================================================
 // DRAWING FUNCTIONS
 // =============================================================================
 
+/// Draw a polyline (direct CeTZ wrapper)
+#let _draw-line(..args) = cetz.draw.line(..args)
+
 /// Set point/label styling
-#let style(..style-args) = drawing.set-style(cetz.draw, ..style-args)
+#let _style(..style-args) = drawing.set-style(cetz.draw, ..style-args)
 
 /// Draw points
-#let points(..names) = drawing.draw-points-styled(cetz.draw, pt, ..names)
+#let _points(..names) = drawing.draw-points-styled(cetz.draw, _pt, ..names)
 
 /// Draw labels
-#let labels(..args) = drawing.label-points-styled(cetz.draw, pt, ..args)
+#let _labels(..args) = drawing.label-points-styled(cetz.draw, _pt, ..args)
 
 /// Draw angle
-#let angle(vertex, a, b, ..opts) = drawing.mark-angle(cetz.draw, cetz.angle, pt(vertex), pt(a), pt(b), ..opts)
+#let _angle(vertex, a, b, ..opts) = drawing.mark-angle(cetz.draw, cetz.angle, _pt(vertex), _pt(a), _pt(b), ..opts)
 
 /// Draw polygon
-#let polygon(..args) = drawing.draw-polygon(cetz.draw, pt, ..args)
+#let _polygon(..args) = drawing.draw-polygon(cetz.draw, _pt, ..args)
 
 /// Fill polygon
-#let fill-polygon(..args) = drawing.fill-polygon(cetz.draw, pt, ..args)
+#let _fill-polygon(..args) = drawing.fill-polygon(cetz.draw, _pt, ..args)
 
 /// Draw segment
-#let segment(a, b, ..opts) = drawing.draw-segment(cetz.draw, pt, a, b, ..opts)
+#let _segment(a, b, ..opts) = drawing.draw-segment(cetz.draw, _pt, a, b, ..opts)
 
 /// Draw line with extension
-#let line-add(a, b, ..opts) = drawing.draw-line-add(cetz.draw, pt, a, b, ..opts)
+#let _line-add(a, b, ..opts) = drawing.draw-line-add(cetz.draw, _pt, a, b, ..opts)
 
 /// Draw arc through points
-#let arc(center, start, end, ..opts) = drawing.draw-arc-through(cetz.draw, pt, center, start, end, ..opts)
+#let _arc(center, start, end, ..opts) = drawing.draw-arc-through(cetz.draw, _pt, center, start, end, ..opts)
 
 /// Draw arc with radius
-#let arc-r(center, radius, start-angle, end-angle, ..opts) = drawing.draw-arc-r(cetz.draw, center, radius, start-angle, end-angle, ..opts)
+#let _arc-r(center, radius, start-angle, end-angle, ..opts) = drawing.draw-arc-r(cetz.draw, center, radius, start-angle, end-angle, ..opts)
 
 /// Draw circle with radius
-#let circle-r(center, radius, ..opts) = drawing.draw-circle-r(cetz.draw, center, radius, ..opts)
+#let _circle-r(center, radius, ..opts) = drawing.draw-circle-r(cetz.draw, center, radius, ..opts)
 
 /// Draw circle through point
-#let circle-through(center, through, ..opts) = drawing.draw-circle-through(cetz.draw, pt, center, through, ..opts)
+#let _circle-through(center, through, ..opts) = drawing.draw-circle-through(cetz.draw, _pt, center, through, ..opts)
 
 /// Draw circle with diameter
-#let circle-diameter(a, b, ..opts) = drawing.draw-circle-diameter(cetz.draw, pt, a, b, ..opts)
+#let _circle-diameter(a, b, ..opts) = drawing.draw-circle-diameter(cetz.draw, _pt, a, b, ..opts)
 
 /// Draw circumcircle
-#let circumcircle(a, b, c, ..opts) = drawing.draw-circumcircle(cetz.draw, pt, a, b, c, ..opts)
+#let _circumcircle(a, b, c, ..opts) = drawing.draw-circumcircle(cetz.draw, _pt, a, b, c, ..opts)
 
 /// Draw incircle
-#let incircle(a, b, c, ..opts) = drawing.draw-incircle(cetz.draw, pt, a, b, c, ..opts)
+#let _incircle(a, b, c, ..opts) = drawing.draw-incircle(cetz.draw, _pt, a, b, c, ..opts)
 
 /// Draw semicircle
-#let semicircle(a, b, ..opts) = drawing.draw-semicircle(cetz.draw, pt, a, b, ..opts)
+#let _semicircle(a, b, ..opts) = drawing.draw-semicircle(cetz.draw, _pt, a, b, ..opts)
 
 /// Draw sector
-#let sector(center, start, end, ..opts) = drawing.draw-sector(cetz.draw, pt, center, start, end, ..opts)
+#let _sector(center, start, end, ..opts) = drawing.draw-sector(cetz.draw, _pt, center, start, end, ..opts)
 
 /// Mark segment
-#let mark-segment(a, b, ..opts) = drawing.mark-segment(cetz.draw, pt, a, b, ..opts)
+#let _mark-segment(a, b, ..opts) = drawing.mark-segment(cetz.draw, _pt, a, b, ..opts)
 
 /// Mark right angle
-#let mark-right-angle(a, vertex, c, ..opts) = drawing.mark-right-angle(cetz.draw, pt, a, vertex, c, ..opts)
+#let _mark-right-angle(a, vertex, c, ..opts) = drawing.mark-right-angle(cetz.draw, _pt, a, vertex, c, ..opts)
 
 /// Fill angle
-#let fill-angle(vertex, a, c, ..opts) = drawing.fill-angle(cetz.draw, cetz.angle, pt, vertex, a, c, ..opts)
+#let _fill-angle(vertex, a, c, ..opts) = drawing.fill-angle(cetz.draw, cetz.angle, _pt, vertex, a, c, ..opts)
 
 /// Label segment
-#let label-segment(a, b, ..opts) = drawing.label-segment(cetz.draw, pt, a, b, ..opts)
+#let _label-segment(a, b, ..opts) = drawing.label-segment(cetz.draw, _pt, a, b, ..opts)
 
 /// Label angle
-#let label-angle(vertex, a, c, ..opts) = drawing.label-angle-at(cetz.draw, pt, vertex, a, c, ..opts)
+#let _label-angle(vertex, a, c, ..opts) = drawing.label-angle-at(cetz.draw, _pt, vertex, a, c, ..opts)
 
 // =============================================================================
 // CALCULATIONS (return values via context)
 // =============================================================================
 
-#let calc-length(a, b) = (ctx => {
+#let _calc-length(a, b) = (ctx => {
   let pa = _resolve-point(ctx, a)
   let pb = _resolve-point(ctx, b)
   (ctx: ctx, value: util.dist(pa, pb))
 },)
 
-#let calc-angle(a, b, c) = (ctx => {
+#let _calc-angle(a, b, c) = (ctx => {
   let pa = _resolve-point(ctx, a)
   let pb = _resolve-point(ctx, b)
   let pc = _resolve-point(ctx, c)
   (ctx: ctx, value: util.angle-at-vertex(pa, pb, pc))
 },)
 
-#let calc-area(a, b, c) = (ctx => {
+#let _calc-area(a, b, c) = (ctx => {
   let pa = _resolve-point(ctx, a)
   let pb = _resolve-point(ctx, b)
   let pc = _resolve-point(ctx, c)
   (ctx: ctx, value: util.triangle-area(pa, pb, pc))
 },)
 
-#let calc-slope(a, b) = (ctx => {
+#let _calc-slope(a, b) = (ctx => {
   let pa = _resolve-point(ctx, a)
   let pb = _resolve-point(ctx, b)
   (ctx: ctx, value: util.slope-angle(pa, pb))
 },)
 
-#let calc-ratio(a, b, c) = (ctx => {
+#let _calc-ratio(a, b, c) = (ctx => {
   let pa = _resolve-point(ctx, a)
   let pb = _resolve-point(ctx, b)
   let pc = _resolve-point(ctx, c)
@@ -921,50 +924,50 @@
 // GRID AND AXES
 // =============================================================================
 
-#let grid(..opts) = drawing.draw-grid(cetz.draw, ..opts)
-#let axes(..opts) = drawing.draw-axes(cetz.draw, ..opts)
-#let axis-x(..opts) = drawing.draw-axis-x(cetz.draw, ..opts)
-#let axis-y(..opts) = drawing.draw-axis-y(cetz.draw, ..opts)
-#let hline(y, ..opts) = drawing.draw-hline(cetz.draw, y, ..opts)
-#let vline(x, ..opts) = drawing.draw-vline(cetz.draw, x, ..opts)
-#let draw-text(x, y, content, ..opts) = drawing.draw-text(cetz.draw, x, y, content, ..opts)
+#let _grid(..opts) = drawing.draw-grid(cetz.draw, ..opts)
+#let _axes(..opts) = drawing.draw-axes(cetz.draw, ..opts)
+#let _axis-x(..opts) = drawing.draw-axis-x(cetz.draw, ..opts)
+#let _axis-y(..opts) = drawing.draw-axis-y(cetz.draw, ..opts)
+#let _hline(y, ..opts) = drawing.draw-hline(cetz.draw, y, ..opts)
+#let _vline(x, ..opts) = drawing.draw-vline(cetz.draw, x, ..opts)
+#let _draw-text(x, y, content, ..opts) = drawing.draw-text(cetz.draw, x, y, content, ..opts)
 
 // =============================================================================
 // CLIPPING
 // =============================================================================
 
 /// Set global clip region
-#let set-clip(xmin, ymin, xmax, ymax) = drawing.set-clip-region(cetz.draw, xmin, ymin, xmax, ymax)
+#let _set-clip(xmin, ymin, xmax, ymax) = drawing.set-clip-region(cetz.draw, xmin, ymin, xmax, ymax)
 
 /// Clear global clip region
-#let clear-clip() = drawing.clear-clip-region(cetz.draw)
+#let _clear-clip() = drawing.clear-clip-region(cetz.draw)
 
 /// Show clip boundary
-#let show-clip(stroke: gray + 0.5pt) = drawing.draw-global-clip-boundary(cetz.draw, stroke: stroke)
+#let _show-clip(stroke: gray + 0.5pt) = drawing.draw-global-clip-boundary(cetz.draw, stroke: stroke)
 
 /// Draw line with global clip
-#let tkz-line(a, b, add: (10, 10), stroke: black) = drawing.draw-line-global-clip(cetz.draw, pt, a, b, add: add, stroke: stroke)
+#let _tkz-line(a, b, add: (10, 10), stroke: black) = drawing.draw-line-global-clip(cetz.draw, _pt, a, b, add: add, stroke: stroke)
 
 /// Draw segment with global clip
-#let seg(a, b, stroke: black) = drawing.draw-segment-global-clip(cetz.draw, pt, a, b, stroke: stroke)
+#let _seg(a, b, stroke: black) = drawing.draw-segment-global-clip(cetz.draw, _pt, a, b, stroke: stroke)
 
 /// Draw clipped line (manual bounds)
-#let clipped-line(p1, p2, xmin, ymin, xmax, ymax, stroke: black) = drawing.draw-clipped-line(cetz.draw, p1, p2, xmin, ymin, xmax, ymax, stroke: stroke)
+#let _clipped-line(p1, p2, xmin, ymin, xmax, ymax, stroke: black) = drawing.draw-clipped-line(cetz.draw, p1, p2, xmin, ymin, xmax, ymax, stroke: stroke)
 
 /// Draw clipped line with extension (manual bounds)
-#let clipped-line-add(a, b, xmin, ymin, xmax, ymax, add: (10, 10), stroke: black) = drawing.draw-clipped-line-add(cetz.draw, pt, a, b, xmin, ymin, xmax, ymax, add: add, stroke: stroke)
+#let _clipped-line-add(a, b, xmin, ymin, xmax, ymax, add: (10, 10), stroke: black) = drawing.draw-clipped-line-add(cetz.draw, _pt, a, b, xmin, ymin, xmax, ymax, add: add, stroke: stroke)
 
 /// Draw clip boundary
-#let clip-boundary(xmin, ymin, xmax, ymax, stroke: black + 0.5pt) = drawing.draw-clip-boundary(cetz.draw, xmin, ymin, xmax, ymax, stroke: stroke)
+#let _clip-boundary(xmin, ymin, xmax, ymax, stroke: black + 0.5pt) = drawing.draw-clip-boundary(cetz.draw, xmin, ymin, xmax, ymax, stroke: stroke)
 
 /// Raw clipping algorithm
-#let clip-line-to-rect = drawing.clip-line-to-rect
+#let _clip-line-to-rect = drawing.clip-line-to-rect
 
 // =============================================================================
 // RAW ALGORITHMS (no context needed)
 // =============================================================================
 
-#let algorithms = (
+#let _algorithms = (
   // Intersections
   line-line: intersection.line-line-raw,
   line-circle: intersection.line-circle-raw,
@@ -1027,8 +1030,143 @@
 )
 
 // Re-export utility functions
-#let midpoint-raw = util.midpoint
-#let dist = util.dist
-#let angle-to = util.angle-to
-#let project-point-on-line = util.project-point-on-line
-#let rotate-point = util.rotate-point
+#let _midpoint-raw = util.midpoint
+#let _dist = util.dist
+#let _angle-to = util.angle-to
+#let _project-point-on-line = util.project-point-on-line
+#let _rotate-point = util.rotate-point
+
+// =============================================================================
+// PUBLIC API (ctz- prefix)
+// =============================================================================
+
+/// Package version
+#let ctz-version = _version
+
+/// CeTZ canvas alias
+#let ctz-canvas = _canvas
+
+/// Initialize ctz-euclide (call at start of canvas body)
+#let ctz-init() = _init()
+
+/// Helper to convert point name to ctz: coordinate
+#let ctz-pt(name) = _pt(name)
+
+// Point definitions
+#let ctz-def-points(..points) = _pts(..points)
+#let ctz-pts(..points) = ctz-def-points(..points)
+
+// Intersections
+#let ctz-def-ll(name, l1, l2, ray: true) = _ll(name, l1, l2, ray: ray)
+#let ctz-def-lc(result-names, line, circle-spec, near: none) = _lc(result-names, line, circle-spec, near: near)
+#let ctz-def-cc(result-names, circle1, circle2) = _cc(result-names, circle1, circle2)
+
+// Triangle centers
+#let ctz-def-centroid(name, a, b, c) = _centroid(name, a, b, c)
+#let ctz-def-circumcenter(name, a, b, c) = _circumcenter(name, a, b, c)
+#let ctz-def-incenter(name, a, b, c) = _incenter(name, a, b, c)
+#let ctz-def-orthocenter(name, a, b, c) = _orthocenter(name, a, b, c)
+#let ctz-def-euler(name, a, b, c) = _euler(name, a, b, c)
+#let ctz-def-lemoine(name, a, b, c) = _lemoine(name, a, b, c)
+#let ctz-def-nagel(name, a, b, c) = _nagel(name, a, b, c)
+#let ctz-def-gergonne(name, a, b, c) = _gergonne(name, a, b, c)
+#let ctz-def-spieker(name, a, b, c) = _spieker(name, a, b, c)
+#let ctz-def-feuerbach(name, a, b, c) = _feuerbach(name, a, b, c)
+#let ctz-def-mittenpunkt(name, a, b, c) = _mittenpunkt(name, a, b, c)
+#let ctz-def-excenter(name, a, b, c, vertex: "A") = _excenter(name, a, b, c, vertex: vertex)
+
+// Special triangles
+#let ctz-def-medial-triangle(name-a, name-b, name-c, a, b, c) = _medial(name-a, name-b, name-c, a, b, c)
+#let ctz-def-orthic-triangle(name-a, name-b, name-c, a, b, c) = _orthic(name-a, name-b, name-c, a, b, c)
+#let ctz-def-intouch-triangle(name-a, name-b, name-c, a, b, c) = _intouch(name-a, name-b, name-c, a, b, c)
+
+// Point constructions
+#let ctz-def-midpoint(name, a, b) = _midpoint(name, a, b)
+#let ctz-def-equilateral(name, a, b) = _equilateral(name, a, b)
+#let ctz-def-square(name-c, name-d, a, b) = _square(name-c, name-d, a, b)
+#let ctz-def-golden(name, a, b, inside: true) = _golden(name, a, b, inside: inside)
+#let ctz-def-barycentric(name, a, b, c, x, y, z) = _barycentric(name, a, b, c, x, y, z)
+#let ctz-def-point-on-circle(name, center, radius, angle-deg) = _point-on-circle(name, center, radius, angle-deg)
+#let ctz-def-regular-polygon(names, center, vertex) = _regular-polygon(names, center, vertex)
+#let ctz-def-linear(name, a, b, k) = _linear(name, a, b, k)
+#let ctz-def-symmetry(name, source, center) = _symmetry(name, source, center)
+#let ctz-def-inversion(name, source, center, radius) = _inversion(name, source, center, radius)
+#let ctz-def-tangent-from(name1, name2, point, center, radius) = _tangent-from(name1, name2, point, center, radius)
+#let ctz-def-tangent-at(name1, name2, point-on-circle, center) = _tangent-at(name1, name2, point-on-circle, center)
+#let ctz-def-radical-axis(name1, name2, circle1, circle2) = _radical-axis(name1, name2, circle1, circle2)
+
+// Transformations
+#let ctz-def-rotation(name, source, center, angle-deg) = _rotation(name, source, center, angle-deg)
+#let ctz-def-reflect(name, source, p1, p2) = _reflect(name, source, p1, p2)
+#let ctz-def-translate(name, source, vector) = _translate(name, source, vector)
+#let ctz-def-homothety(name, source, center, k) = _homothety(name, source, center, k)
+#let ctz-def-project(name, source, p1, p2) = _project(name, source, p1, p2)
+
+// Line construction helpers
+#let ctz-def-perp(name1, name2, line, through) = _perp(name1, name2, line, through)
+#let ctz-def-para(name1, name2, line, through) = _para(name1, name2, line, through)
+#let ctz-def-bisect(name1, name2, a, vertex, c) = _bisect(name1, name2, a, vertex, c)
+#let ctz-def-mediator(name1, name2, a, b) = _mediator(name1, name2, a, b)
+
+// Drawing functions
+#let ctz-style(..style-args) = _style(..style-args)
+#let ctz-draw-line(..args) = _draw-line(..args)
+#let ctz-draw-points(..names) = _points(..names)
+#let ctz-points(..names) = ctz-draw-points(..names)
+#let ctz-draw-labels(..args) = _labels(..args)
+#let ctz-draw-angle(vertex, a, b, ..opts) = _angle(vertex, a, b, ..opts)
+#let ctz-draw-polygon(..args) = _polygon(..args)
+#let ctz-draw-fill-polygon(..args) = _fill-polygon(..args)
+#let ctz-draw-segment(a, b, ..opts) = _segment(a, b, ..opts)
+#let ctz-draw-line-add(a, b, ..opts) = _line-add(a, b, ..opts)
+#let ctz-draw-arc(center, start, end, ..opts) = _arc(center, start, end, ..opts)
+#let ctz-draw-arc-r(center, radius, start-angle, end-angle, ..opts) = _arc-r(center, radius, start-angle, end-angle, ..opts)
+#let ctz-draw-circle-r(center, radius, ..opts) = _circle-r(center, radius, ..opts)
+#let ctz-draw-circle-through(center, through, ..opts) = _circle-through(center, through, ..opts)
+#let ctz-draw-circle-diameter(a, b, ..opts) = _circle-diameter(a, b, ..opts)
+#let ctz-draw-circumcircle(a, b, c, ..opts) = _circumcircle(a, b, c, ..opts)
+#let ctz-draw-incircle(a, b, c, ..opts) = _incircle(a, b, c, ..opts)
+#let ctz-draw-semicircle(a, b, ..opts) = _semicircle(a, b, ..opts)
+#let ctz-draw-sector(center, start, end, ..opts) = _sector(center, start, end, ..opts)
+#let ctz-draw-mark-segment(a, b, ..opts) = _mark-segment(a, b, ..opts)
+#let ctz-draw-mark-right-angle(a, vertex, c, ..opts) = _mark-right-angle(a, vertex, c, ..opts)
+#let ctz-draw-fill-angle(vertex, a, c, ..opts) = _fill-angle(vertex, a, c, ..opts)
+#let ctz-draw-label-segment(a, b, ..opts) = _label-segment(a, b, ..opts)
+#let ctz-draw-label-angle(vertex, a, c, ..opts) = _label-angle(vertex, a, c, ..opts)
+
+// Calculations (return values via context)
+#let ctz-calc-length(a, b) = _calc-length(a, b)
+#let ctz-calc-angle(a, b, c) = _calc-angle(a, b, c)
+#let ctz-calc-area(a, b, c) = _calc-area(a, b, c)
+#let ctz-calc-slope(a, b) = _calc-slope(a, b)
+#let ctz-calc-ratio(a, b, c) = _calc-ratio(a, b, c)
+
+// Grid and axes
+#let ctz-draw-grid(..opts) = _grid(..opts)
+#let ctz-draw-axes(..opts) = _axes(..opts)
+#let ctz-draw-axis-x(..opts) = _axis-x(..opts)
+#let ctz-draw-axis-y(..opts) = _axis-y(..opts)
+#let ctz-draw-hline(y, ..opts) = _hline(y, ..opts)
+#let ctz-draw-vline(x, ..opts) = _vline(x, ..opts)
+#let ctz-draw-text(x, y, content, ..opts) = _draw-text(x, y, content, ..opts)
+
+// Clipping
+#let ctz-set-clip(xmin, ymin, xmax, ymax) = _set-clip(xmin, ymin, xmax, ymax)
+#let ctz-clear-clip() = _clear-clip()
+#let ctz-show-clip(stroke: gray + 0.5pt) = _show-clip(stroke: stroke)
+#let ctz-draw-line-global-clip(a, b, add: (10, 10), stroke: black) = _tkz-line(a, b, add: add, stroke: stroke)
+#let ctz-draw-seg-global-clip(a, b, stroke: black) = _seg(a, b, stroke: stroke)
+#let ctz-draw-clipped-line(p1, p2, xmin, ymin, xmax, ymax, stroke: black) = _clipped-line(p1, p2, xmin, ymin, xmax, ymax, stroke: stroke)
+#let ctz-draw-clipped-line-add(a, b, xmin, ymin, xmax, ymax, add: (10, 10), stroke: black) = _clipped-line-add(a, b, xmin, ymin, xmax, ymax, add: add, stroke: stroke)
+#let ctz-draw-clip-boundary(xmin, ymin, xmax, ymax, stroke: black + 0.5pt) = _clip-boundary(xmin, ymin, xmax, ymax, stroke: stroke)
+#let ctz-clip-line-to-rect = _clip-line-to-rect
+
+// Raw algorithms (no context needed)
+#let ctz-algorithms = _algorithms
+
+// Utility re-exports
+#let ctz-midpoint-raw = _midpoint-raw
+#let ctz-dist = _dist
+#let ctz-angle-to = _angle-to
+#let ctz-project-point-on-line = _project-point-on-line
+#let ctz-rotate-point = _rotate-point

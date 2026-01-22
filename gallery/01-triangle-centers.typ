@@ -2,43 +2,43 @@
 
 #set page(width: auto, height: auto, margin: 0.3cm)
 
-#canvas(length: 0.95cm, {
+#ctz-canvas(length: 0.95cm, {
   import cetz.draw: *
 
-  init()
-  style(point: (shape: "dot", size: 0.07, fill: black))
+  ctz-init()
+  ctz-style(point: (shape: "dot", size: 0.07, fill: black))
 
-  pts(A: (0, 0), B: (7, 0.5), C: (2.5, 5))
-  line("A", "B", "C", "A", stroke: black + 1.5pt)
+  ctz-def-points(A: (0, 0), B: (7, 0.5), C: (2.5, 5))
+  ctz-draw-line("A", "B", "C", "A", stroke: black + 1.5pt)
 
-  centroid("G", "A", "B", "C")
-  circumcenter("O", "A", "B", "C")
-  incenter("I", "A", "B", "C")
-  orthocenter("H", "A", "B", "C")
+  ctz-def-centroid("G", "A", "B", "C")
+  ctz-def-circumcenter("O", "A", "B", "C")
+  ctz-def-incenter("I", "A", "B", "C")
+  ctz-def-orthocenter("H", "A", "B", "C")
 
   // Euler line
-  line("H", "O", stroke: (
+  ctz-draw-line("H", "O", stroke: (
     paint: red.darken(20%),
     dash: "dashed",
     thickness: 1.2pt,
   ))
 
   // Circumcircle
-  circle("O", "A", stroke: blue + 1pt)
+  ctz-draw-circle-through("O", "A", stroke: blue + 1pt)
 
   // Incircle
-  incircle("A", "B", "C", stroke: green.darken(20%) + 1pt)
+  ctz-draw-incircle("A", "B", "C", stroke: green.darken(20%) + 1pt)
 
   // Medians
-  midpoint("Ma", "B", "C")
-  midpoint("Mb", "A", "C")
-  midpoint("Mc", "A", "B")
-  line("A", "Ma", stroke: gray + 0.7pt)
-  line("B", "Mb", stroke: gray + 0.7pt)
-  line("C", "Mc", stroke: gray + 0.7pt)
+  ctz-def-midpoint("Ma", "B", "C")
+  ctz-def-midpoint("Mb", "A", "C")
+  ctz-def-midpoint("Mc", "A", "B")
+  ctz-draw-line("A", "Ma", stroke: gray + 0.7pt)
+  ctz-draw-line("B", "Mb", stroke: gray + 0.7pt)
+  ctz-draw-line("C", "Mc", stroke: gray + 0.7pt)
 
-  points("A", "B", "C", "G", "O", "I", "H")
-  labels(
+  ctz-draw-points("A", "B", "C", "G", "O", "I", "H")
+  ctz-draw-labels(
     "A",
     "B",
     "C",
