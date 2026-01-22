@@ -1,4 +1,4 @@
-#import "../src/lib.typ": *
+#import "@preview/ctz-euclide:0.1.0": *
 
 #set page(width: auto, height: auto, margin: 0.3cm)
 
@@ -9,10 +9,10 @@
   ctz-style(point: (shape: "dot", size: 0.08, fill: black))
 
   ctz-def-points(O: (0, 0), V1: (4, 0))
-  ctz-def-regular-polygon(("A", "B", "C", "D", "E"), "O", "V1")
+  ctz-def-regular-polygon("Pent", ("A", "B", "C", "D", "E"), "O", "V1")
 
   // Pentagon
-  ctz-draw-line("A", "B", "C", "D", "E", "A", stroke: black + 1.5pt)
+  ctz-draw-polygon("Pent", stroke: black + 1.5pt)
 
   // All diagonals
   ctz-draw-line("A", "C", stroke: blue + 0.8pt)
@@ -22,7 +22,9 @@
   ctz-draw-line("C", "E", stroke: green.darken(20%) + 0.8pt)
 
   // Center
-  ctz-draw-circle-r("O", 4, stroke: gray.lighten(50%) + 0.5pt)
+  ctz-def-circle("C1", "O", radius: 4)
+  ctz-draw-circle("C1", stroke: gray.lighten(50%) + 0.5pt)
+  ctz-label-polygon("Pent", $P_1$, pos: "center")
 
   ctz-draw-points("A", "B", "C", "D", "E", "O")
   ctz-draw-labels(

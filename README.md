@@ -2,13 +2,13 @@
 
 A comprehensive Euclidean geometry package for Typst, inspired by the LaTeX **tkz-euclide** package.
 
-> **Note:** This package is a port of the LaTeX [tkz-euclide](https://ctan.org/pkg/tkz-euclide) package. We are deeply grateful to Alain Matthes for creating the original **tkz-euclide** package, without which this Typst port would have been impossible. We will be glad if this package comes close to reaching one day the quality of the figures which the original package can render.
+> **Note:** This package is a port of the LaTeX [tkz-euclide](https://ctan.org/pkg/tkz-euclide) package. We are deeply grateful to Alain Matthes for creating the original **tkz-euclide** package, without which this Typst port would have been impossible. This package is will try to implement the complete set of features of the **tkz-euclide** package, we are not there yet.  
 
-> **Development Note:** This package was coded entirely by [Claude Code Opus 4.5](https://www.anthropic.com/claude). Nevertheless, I have spent lots of time and energy in the following feedback look : prompting, reviewing, testing and designing. Any mistakes or bugs are my own.
+> **Development Note:** This package was coded entirely by [Claude Code Opus 4.5](https://www.anthropic.com/claude) and [Codex](https://openai.com/codex/). Nevertheless, I have spent lots of time and energy in the following feedback look : prompting, reviewing, testing and designing. Any mistakes or bugs are my own.
 
 ## ⚠️ Early Development Status
 
-This package is currently in early development and is **by no means definitive**. Many improvements and features are planned and will be implemented over time. The API may change as the package evolves.
+This package is **by no means definitive**. Improvements and features are planned and will be implemented over time. The API may change as the package evolves.
 
  This package is being developed. Expect:
 - Bug fixes and improvements
@@ -193,6 +193,24 @@ ctz-draw-labels("A", "B", "C",
 
 // Mark angles
 ctz-draw-angle("B", "A", "C", label: $alpha$, radius: 0.6)
+```
+
+### Paths and Arrows
+
+```typst
+// TikZ-like per-segment tips
+ctz-draw-path("A--B->C|-|D", stroke: black)
+```
+
+Supported connectors: `--`, `->`, `<-`, `<->`, `|-|`, `|->`, `<-|`.
+By default, points (small dots) and labels (below) are drawn. Override with `{...}` in the path:
+`"A{below}--B{below}->C{above}|-|D{below}"`.
+You can customize point appearance with `point-style` and `point-color`, or disable with `points: false`.
+
+### Segment Measurements
+
+```typst
+ctz-draw-measure-segment("A", "B", label: $5$, offset: 0.3, side: "left")
 ```
 
 ## Advanced Features

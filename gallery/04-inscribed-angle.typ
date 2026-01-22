@@ -1,4 +1,4 @@
-#import "../src/lib.typ": *
+#import "@preview/ctz-euclide:0.1.0": *
 
 #set page(width: auto, height: auto, margin: 0.3cm)
 
@@ -9,7 +9,9 @@
   ctz-style(point: (shape: "cross", size: 0.11, stroke: black + 1.2pt))
 
   ctz-def-points(O: (0, 0), R: (4, 0))
-  ctz-draw-circle-r("O", 4, stroke: black + 1.2pt)
+  ctz-def-circle("C1", "O", through: "R")
+  ctz-draw-circle("C1", stroke: black + 1.2pt)
+  ctz-label-circle("C1", $C_1$, pos: "above right", dist: 0.2)
 
   // Place points on circle: A left, C right, B at bottom
   ctz-def-rotation("A", "R", "O", 150)

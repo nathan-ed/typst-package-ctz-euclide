@@ -23,6 +23,12 @@
 
 /// Internal key for storing points in shared-state
 #let _points-key = "tkz-points"
+/// Internal key for storing named lines in shared-state
+#let _lines-key = "ctz-lines"
+/// Internal key for storing named circles in shared-state
+#let _circles-key = "ctz-circles"
+/// Internal key for storing named polygons in shared-state
+#let _polygons-key = "ctz-polygons"
 
 /// Get all stored points from context
 #let _get-points(ctx) = {
@@ -32,6 +38,39 @@
 /// Store points in context
 #let _set-points(ctx, points) = {
   ctx.shared-state.insert(_points-key, points)
+  ctx
+}
+
+/// Get all stored lines from context
+#let _get-lines(ctx) = {
+  ctx.shared-state.at(_lines-key, default: (:))
+}
+
+/// Store lines in context
+#let _set-lines(ctx, lines) = {
+  ctx.shared-state.insert(_lines-key, lines)
+  ctx
+}
+
+/// Get all stored circles from context
+#let _get-circles(ctx) = {
+  ctx.shared-state.at(_circles-key, default: (:))
+}
+
+/// Store circles in context
+#let _set-circles(ctx, circles) = {
+  ctx.shared-state.insert(_circles-key, circles)
+  ctx
+}
+
+/// Get all stored polygons from context
+#let _get-polygons(ctx) = {
+  ctx.shared-state.at(_polygons-key, default: (:))
+}
+
+/// Store polygons in context
+#let _set-polygons(ctx, polygons) = {
+  ctx.shared-state.insert(_polygons-key, polygons)
   ctx
 }
 
@@ -61,6 +100,15 @@
     // Initialize shared state for point storage
     if _points-key not in ctx.shared-state {
       ctx.shared-state.insert(_points-key, (:))
+    }
+    if _lines-key not in ctx.shared-state {
+      ctx.shared-state.insert(_lines-key, (:))
+    }
+    if _circles-key not in ctx.shared-state {
+      ctx.shared-state.insert(_circles-key, (:))
+    }
+    if _polygons-key not in ctx.shared-state {
+      ctx.shared-state.insert(_polygons-key, (:))
     }
     // Register coordinate resolver if not already done
     if type(ctx.resolve-coordinate) != array {
@@ -140,13 +188,27 @@
   },)
 }
 
+/// Parse line specification (name or pair of points)
+#let _parse-line(ctx, line-spec) = {
+  if type(line-spec) == str {
+    let lines = _get-lines(ctx)
+    if line-spec in lines {
+      return lines.at(line-spec)
+    }
+    panic("Line '" + line-spec + "' not found")
+  } else if type(line-spec) == array and line-spec.len() == 2 {
+    let p1 = _resolve-point(ctx, line-spec.at(0))
+    let p2 = _resolve-point(ctx, line-spec.at(1))
+    return (p1, p2)
+  }
+  panic("Invalid line specification: " + repr(line-spec))
+}
+
 /// Line-line intersection
 #let _ll(name, line1, line2, ray: true) = {
   (ctx => {
-    let p1 = _resolve-point(ctx, line1.at(0))
-    let p2 = _resolve-point(ctx, line1.at(1))
-    let p3 = _resolve-point(ctx, line2.at(0))
-    let p4 = _resolve-point(ctx, line2.at(1))
+    let (p1, p2) = _parse-line(ctx, line1)
+    let (p3, p4) = _parse-line(ctx, line2)
 
     let result = intersection.line-line-raw(p1, p2, p3, p4, ray: ray)
     assert(result != none, message: "Lines are parallel, no intersection found")
@@ -161,7 +223,14 @@
 
 /// Parse circle specification
 #let _parse-circle(ctx, circle-spec) = {
-  if type(circle-spec) == dictionary {
+  if type(circle-spec) == str {
+    let circles = _get-circles(ctx)
+    if circle-spec in circles {
+      let c = circles.at(circle-spec)
+      return (c.center, c.radius)
+    }
+    panic("Circle '" + circle-spec + "' not found")
+  } else if type(circle-spec) == dictionary {
     let center = _resolve-point(ctx, circle-spec.center)
     let radius = if "radius" in circle-spec {
       if type(circle-spec.radius) == length { circle-spec.radius / 1cm } else { circle-spec.radius }
@@ -184,8 +253,7 @@
 /// Line-circle intersection
 #let _lc(result-names, line, circle-spec, near: none) = {
   (ctx => {
-    let la = _resolve-point(ctx, line.at(0))
-    let lb = _resolve-point(ctx, line.at(1))
+    let (la, lb) = _parse-line(ctx, line)
     let (center, radius) = _parse-circle(ctx, circle-spec)
 
     let results = intersection.line-circle-raw(la, lb, center, radius)
@@ -225,6 +293,52 @@
     }
     ctx = _set-points(ctx, points)
 
+    (ctx: ctx)
+  },)
+}
+
+/// Define a named line from two points
+#let _def-line-name(name, a, b) = {
+  (ctx => {
+    let p1 = _resolve-point(ctx, a)
+    let p2 = _resolve-point(ctx, b)
+    let lines = _get-lines(ctx)
+    lines.insert(name, (p1, p2))
+    ctx = _set-lines(ctx, lines)
+    (ctx: ctx)
+  },)
+}
+
+/// Define a named circle by center and radius/through point
+#let _def-circle(name, center, radius: auto, through: none) = {
+  (ctx => {
+    let c = _resolve-point(ctx, center)
+    let r = if radius != auto {
+      if type(radius) == length { radius / 1cm } else { radius }
+    } else if through != none {
+      let p = _resolve-point(ctx, through)
+      util.dist(c, p)
+    } else {
+      panic("Circle needs radius or through point")
+    }
+
+    let circles = _get-circles(ctx)
+    circles.insert(name, (center: c, radius: r))
+    ctx = _set-circles(ctx, circles)
+    (ctx: ctx)
+  },)
+}
+
+/// Define a named polygon from ordered points
+#let _def-polygon(name, ..points) = {
+  let pts = points.pos()
+  if pts.len() < 3 {
+    panic("Polygon needs at least three points")
+  }
+  (ctx => {
+    let polygons = _get-polygons(ctx)
+    polygons.insert(name, pts)
+    ctx = _set-polygons(ctx, polygons)
     (ctx: ctx)
   },)
 }
@@ -542,17 +656,43 @@
 }
 
 /// Define regular polygon vertices
-#let _regular-polygon(names, center, first-vertex) = {
+#let _regular-polygon(..args) = {
+  let pos = args.pos()
+  if pos.len() < 3 {
+    panic("Regular polygon needs names, center, and first vertex")
+  }
+  let name = none
+  let names = none
+  let center = none
+  let first-vertex = none
+  if type(pos.at(0)) == str {
+    if pos.len() < 4 {
+      panic("Regular polygon needs name, names, center, and first vertex")
+    }
+    name = pos.at(0)
+    names = pos.at(1)
+    center = pos.at(2)
+    first-vertex = pos.at(3)
+  } else {
+    names = pos.at(0)
+    center = pos.at(1)
+    first-vertex = pos.at(2)
+  }
   (ctx => {
     let c = _resolve-point(ctx, center)
     let fv = _resolve-point(ctx, first-vertex)
     let n = names.len()
     let vertices = util.regular-polygon-vertices(c, fv, n)
     let points = _get-points(ctx)
-    for (i, name) in names.enumerate() {
-      points.insert(name, vertices.at(i))
+    for (i, vname) in names.enumerate() {
+      points.insert(vname, vertices.at(i))
     }
     ctx = _set-points(ctx, points)
+    if name != none {
+      let polygons = _get-polygons(ctx)
+      polygons.insert(name, names)
+      ctx = _set-polygons(ctx, polygons)
+    }
     (ctx: ctx)
   },)
 }
@@ -814,8 +954,25 @@
 // DRAWING FUNCTIONS
 // =============================================================================
 
-/// Draw a polyline (direct CeTZ wrapper)
-#let _draw-line(..args) = cetz.draw.line(..args)
+/// Draw a polyline or named line (direct CeTZ wrapper)
+#let _draw-line(..args) = {
+  let pos = args.pos()
+  let named = args.named()
+  if pos.len() == 1 and type(pos.at(0)) == str {
+    let name = pos.at(0)
+    cetz.draw.get-ctx(ctx => {
+      let lines = _get-lines(ctx)
+      if name in lines {
+        let (p1, p2) = lines.at(name)
+        cetz.draw.line(p1, p2, ..named)
+      } else {
+        panic("Line '" + name + "' not found")
+      }
+    })
+  } else {
+    cetz.draw.line(..pos, ..named)
+  }
+}
 
 /// Set point/label styling
 #let _style(..style-args) = drawing.set-style(cetz.draw, ..style-args)
@@ -830,13 +987,271 @@
 #let _angle(vertex, a, b, ..opts) = drawing.mark-angle(cetz.draw, cetz.angle, _pt(vertex), _pt(a), _pt(b), ..opts)
 
 /// Draw polygon
-#let _polygon(..args) = drawing.draw-polygon(cetz.draw, _pt, ..args)
+#let _polygon(..args) = {
+  let pos = args.pos()
+  let named = args.named()
+  if pos.len() == 1 and type(pos.at(0)) == str {
+    let name = pos.at(0)
+    cetz.draw.get-ctx(ctx => {
+      let polygons = _get-polygons(ctx)
+      if name in polygons {
+        let pts = polygons.at(name)
+        drawing.draw-polygon(cetz.draw, _pt, ..pts, ..named)
+      } else {
+        panic("Polygon '" + name + "' not found")
+      }
+    })
+  } else {
+    drawing.draw-polygon(cetz.draw, _pt, ..pos, ..named)
+  }
+}
+
+/// Draw a regular polygon by passing its vertex names
+#let _draw-regular-polygon(names, ..opts) = {
+  if names.len() < 3 {
+    panic("Regular polygon needs at least three vertices")
+  }
+  let named = opts.named()
+  let mark = named.at("mark", default: none)
+  let mark-opts = named.at("mark-opts", default: (:))
+  let draw-opts = (:)
+  for (k, v) in named {
+    if k not in ("mark", "mark-opts") {
+      draw-opts.insert(k, v)
+    }
+  }
+
+  _polygon(..names, ..draw-opts)
+
+  if mark != none {
+    let n = names.len()
+    for i in range(n) {
+      let a = names.at(i)
+      let b = names.at(calc.rem(i + 1, n))
+      drawing.mark-segment(cetz.draw, _pt, a, b, mark: mark, ..mark-opts)
+    }
+  }
+}
 
 /// Fill polygon
-#let _fill-polygon(..args) = drawing.fill-polygon(cetz.draw, _pt, ..args)
+#let _fill-polygon(..args) = {
+  let pos = args.pos()
+  let named = args.named()
+  if pos.len() == 1 and type(pos.at(0)) == str {
+    let name = pos.at(0)
+    cetz.draw.get-ctx(ctx => {
+      let polygons = _get-polygons(ctx)
+      if name in polygons {
+        let pts = polygons.at(name)
+        drawing.fill-polygon(cetz.draw, _pt, ..pts, ..named)
+      } else {
+        panic("Polygon '" + name + "' not found")
+      }
+    })
+  } else {
+    drawing.fill-polygon(cetz.draw, _pt, ..pos, ..named)
+  }
+}
+
+/// Fill a regular polygon by passing its vertex names
+#let _fill-regular-polygon(names, ..opts) = {
+  if names.len() < 3 {
+    panic("Regular polygon needs at least three vertices")
+  }
+  _fill-polygon(..names, ..opts)
+}
+
+/// Parse a TikZ-like path spec (e.g., "A--B->C|-|D")
+#let _parse-path-spec(spec) = {
+  let s = spec.trim()
+  let points = ()
+  let connectors = ()
+  let label-placements = (:)
+  let point-style-overrides = (:)
+  let ops = ("<->", "|-|", "|->", "<-|", "->", "<-", "--")
+
+  let trim-left(s) = {
+    while s.len() > 0 and s.slice(0, 1).trim() == "" {
+      s = s.slice(1)
+    }
+    s
+  }
+
+  s = trim-left(s)
+  while s.len() > 0 {
+    let i = 0
+    let depth = 0
+    while i < s.len() and (depth > 0 or s.slice(i, i + 1) not in ("-", "<", ">", "|")) {
+      let ch = s.slice(i, i + 1)
+      if ch == "{" { depth += 1 }
+      else if ch == "}" { depth -= 1 }
+      i += 1
+    }
+    if depth != 0 {
+      panic("Unbalanced label braces in path spec: " + spec)
+    }
+    if i == 0 {
+      panic("Expected point name in path spec: " + spec)
+    }
+    let token = s.slice(0, i).trim()
+    if token == "" {
+      panic("Empty point name in path spec: " + spec)
+    }
+    let name = token
+    if "{" in token {
+      let start = none
+      for j in range(token.len()) {
+        if token.slice(j, j + 1) == "{" {
+          start = j
+          break
+        }
+      }
+      if start == none {
+        panic("Invalid label placement in path spec: " + spec)
+      }
+      let end = token.len() - 1
+      if not token.ends-with("}") {
+        panic("Invalid label placement in path spec: " + spec)
+      }
+      name = token.slice(0, start).trim()
+      let spec = token.slice(start + 1, end).trim()
+      if name == "" {
+        panic("Empty point name in path spec: " + spec)
+      }
+      if spec != "" {
+        let pos = none
+        let style = none
+        let parts = spec.split(",")
+        for part in parts {
+          let item = part.trim()
+          if item == "" { continue }
+          if ":" in item {
+            let key = item.split(":").at(0).trim()
+            let val = item.split(":").at(1).trim()
+            if val.starts-with("\"") and val.ends-with("\"") and val.len() >= 2 {
+              val = val.slice(1, val.len() - 1)
+            }
+            if key == "pos" {
+              pos = val
+            } else if key == "style" or key == "point" {
+              style = if val == "none" { none } else { val }
+            }
+          } else {
+            pos = item
+          }
+        }
+        if pos != none and pos != "" {
+          label-placements.insert(name, pos)
+        }
+        if style != none {
+          point-style-overrides.insert(name, style)
+        }
+      }
+    }
+    points.push(name)
+    s = trim-left(s.slice(i))
+    if s.len() == 0 { break }
+
+    let connector = none
+    for op in ops {
+      if s.starts-with(op) {
+        connector = op
+        s = s.slice(op.len())
+        break
+      }
+    }
+    if connector == none {
+      panic("Expected connector in path spec: " + spec)
+    }
+    connectors.push(connector)
+    s = trim-left(s)
+  }
+
+  if points.len() != connectors.len() + 1 {
+    panic("Invalid path spec: " + spec)
+  }
+
+  (points: points, connectors: connectors, label-placements: label-placements, point-style-overrides: point-style-overrides)
+}
+
+/// Draw a path with per-segment arrows using a TikZ-like string
+#let _path(spec, ..opts) = {
+  if type(spec) != str {
+    panic("ctz-draw-path expects a string like \"A--B->C|-|D\"")
+  }
+  let parsed = _parse-path-spec(spec)
+  let points = parsed.points
+  let connectors = parsed.connectors
+  let named = opts.named()
+  let draw-points = named.at("points", default: true)
+  let draw-labels = named.at("labels", default: true)
+  let default-label-pos = named.at("label-pos", default: "below")
+  let label-overrides = named.at("label-overrides", default: (:))
+  let point-style = named.at("point-style", default: auto)
+  let point-color = named.at("point-color", default: black)
+  let style = (:)
+  for (k, v) in named {
+    if k not in ("points", "labels", "label-pos", "label-overrides", "point-style", "point-color") {
+      style.insert(k, v)
+    }
+  }
+
+  for i in range(points.len() - 1) {
+    let arrows = connectors.at(i)
+    if arrows == "--" {
+      arrows = none
+    }
+    drawing.draw-segment(cetz.draw, _pt, points.at(i), points.at(i + 1), arrows: arrows, ..style)
+  }
+
+  if draw-points {
+    let connectors-len = connectors.len()
+    for i in range(points.len()) {
+      let name = points.at(i)
+      let has-bar = false
+      if i > 0 {
+        let prev = connectors.at(i - 1)
+        let prev-end = if prev in ("|-|", "<-|") { "|" } else { none }
+        if prev-end == "|" { has-bar = true }
+      }
+      if i < connectors-len {
+        let next = connectors.at(i)
+        let next-start = if next in ("|-|", "|->") { "|" } else { none }
+        if next-start == "|" { has-bar = true }
+      }
+
+      let default-style = if has-bar { none } else { "cross" }
+      let final-style = if point-style == auto { default-style } else { point-style }
+      if name in parsed.point-style-overrides {
+        final-style = parsed.point-style-overrides.at(name)
+      }
+
+      if final-style != none {
+        drawing.draw-point(cetz.draw, _pt(name), style: final-style, color: point-color)
+      }
+    }
+  }
+
+  if draw-labels {
+    let placements = (:)
+    for name in points {
+      placements.insert(name, default-label-pos)
+    }
+    for (k, v) in parsed.label-placements {
+      placements.insert(k, v)
+    }
+    for (k, v) in label-overrides {
+      placements.insert(k, v)
+    }
+    drawing.label-points-styled(cetz.draw, _pt, ..points, ..placements)
+  }
+}
 
 /// Draw segment
 #let _segment(a, b, ..opts) = drawing.draw-segment(cetz.draw, _pt, a, b, ..opts)
+
+/// Draw measurement segment
+#let _measure-segment(a, b, ..opts) = drawing.draw-measure-segment(cetz.draw, _pt, a, b, ..opts)
 
 /// Draw line with extension
 #let _line-add(a, b, ..opts) = drawing.draw-line-add(cetz.draw, _pt, a, b, ..opts)
@@ -855,6 +1270,19 @@
 
 /// Draw circle with diameter
 #let _circle-diameter(a, b, ..opts) = drawing.draw-circle-diameter(cetz.draw, _pt, a, b, ..opts)
+
+/// Draw a named circle
+#let _draw-circle(name, ..opts) = {
+  cetz.draw.get-ctx(ctx => {
+    let circles = _get-circles(ctx)
+    if name in circles {
+      let c = circles.at(name)
+      drawing.draw-circle-r(cetz.draw, c.center, c.radius, ..opts)
+    } else {
+      panic("Circle '" + name + "' not found")
+    }
+  })
+}
 
 /// Draw circumcircle
 #let _circumcircle(a, b, c, ..opts) = drawing.draw-circumcircle(cetz.draw, _pt, a, b, c, ..opts)
@@ -882,6 +1310,55 @@
 
 /// Label angle
 #let _label-angle(vertex, a, c, ..opts) = drawing.label-angle-at(cetz.draw, _pt, vertex, a, c, ..opts)
+
+/// Label a named circle
+#let _label-circle(name, label, pos: "above", dist: 0.2, offset: (0, 0)) = {
+  cetz.draw.get-ctx(ctx => {
+    let circles = _get-circles(ctx)
+    if name in circles {
+      let c = circles.at(name)
+      let base = draw.anchor-offset(pos, c.radius + dist)
+      let label-pos = (
+        c.center.at(0) + base.at(0) + offset.at(0),
+        c.center.at(1) + base.at(1) + offset.at(1),
+        c.center.at(2, default: 0),
+      )
+      let anchor = draw.tkz-pos-to-anchor(pos)
+      cetz.draw.content(label-pos, label, anchor: anchor)
+    } else {
+      panic("Circle '" + name + "' not found")
+    }
+  })
+}
+
+/// Label a named polygon
+#let _label-polygon(name, label, pos: "center", dist: 0.2, offset: (0, 0)) = {
+  cetz.draw.get-ctx(ctx => {
+    let polygons = _get-polygons(ctx)
+    if name in polygons {
+      let pts = polygons.at(name).map(p => _resolve-point(ctx, p))
+      if pts.len() == 0 {
+        return
+      }
+      let sum = (0, 0, 0)
+      for p in pts {
+        sum = (sum.at(0) + p.at(0), sum.at(1) + p.at(1), sum.at(2) + p.at(2, default: 0))
+      }
+      let center = (sum.at(0) / pts.len(), sum.at(1) / pts.len(), sum.at(2) / pts.len())
+
+      let base = if pos == "center" or pos == "centroid" { (0, 0) } else { draw.anchor-offset(pos, dist) }
+      let anchor = if pos == "center" or pos == "centroid" { "center" } else { draw.tkz-pos-to-anchor(pos) }
+      let label-pos = (
+        center.at(0) + base.at(0) + offset.at(0),
+        center.at(1) + base.at(1) + offset.at(1),
+        center.at(2, default: 0),
+      )
+      cetz.draw.content(label-pos, label, anchor: anchor)
+    } else {
+      panic("Polygon '" + name + "' not found")
+    }
+  })
+}
 
 // =============================================================================
 // CALCULATIONS (return values via context)
@@ -1055,6 +1532,9 @@
 // Point definitions
 #let ctz-def-points(..points) = _pts(..points)
 #let ctz-pts(..points) = ctz-def-points(..points)
+#let ctz-def-line(name, a, b) = _def-line-name(name, a, b)
+#let ctz-def-circle(name, center, radius: auto, through: none) = _def-circle(name, center, radius: radius, through: through)
+#let ctz-def-polygon(name, ..points) = _def-polygon(name, ..points)
 
 // Intersections
 #let ctz-def-ll(name, l1, l2, ray: true) = _ll(name, l1, l2, ray: ray)
@@ -1087,7 +1567,7 @@
 #let ctz-def-golden(name, a, b, inside: true) = _golden(name, a, b, inside: inside)
 #let ctz-def-barycentric(name, a, b, c, x, y, z) = _barycentric(name, a, b, c, x, y, z)
 #let ctz-def-point-on-circle(name, center, radius, angle-deg) = _point-on-circle(name, center, radius, angle-deg)
-#let ctz-def-regular-polygon(names, center, vertex) = _regular-polygon(names, center, vertex)
+#let ctz-def-regular-polygon(..args) = _regular-polygon(..args)
 #let ctz-def-linear(name, a, b, k) = _linear(name, a, b, k)
 #let ctz-def-symmetry(name, source, center) = _symmetry(name, source, center)
 #let ctz-def-inversion(name, source, center, radius) = _inversion(name, source, center, radius)
@@ -1117,13 +1597,18 @@
 #let ctz-draw-angle(vertex, a, b, ..opts) = _angle(vertex, a, b, ..opts)
 #let ctz-draw-polygon(..args) = _polygon(..args)
 #let ctz-draw-fill-polygon(..args) = _fill-polygon(..args)
+#let ctz-draw-regular-polygon(names, ..opts) = _draw-regular-polygon(names, ..opts)
+#let ctz-draw-fill-regular-polygon(names, ..opts) = _fill-regular-polygon(names, ..opts)
+#let ctz-draw-path(spec, ..opts) = _path(spec, ..opts)
 #let ctz-draw-segment(a, b, ..opts) = _segment(a, b, ..opts)
+#let ctz-draw-measure-segment(a, b, ..opts) = _measure-segment(a, b, ..opts)
 #let ctz-draw-line-add(a, b, ..opts) = _line-add(a, b, ..opts)
 #let ctz-draw-arc(center, start, end, ..opts) = _arc(center, start, end, ..opts)
 #let ctz-draw-arc-r(center, radius, start-angle, end-angle, ..opts) = _arc-r(center, radius, start-angle, end-angle, ..opts)
 #let ctz-draw-circle-r(center, radius, ..opts) = _circle-r(center, radius, ..opts)
 #let ctz-draw-circle-through(center, through, ..opts) = _circle-through(center, through, ..opts)
 #let ctz-draw-circle-diameter(a, b, ..opts) = _circle-diameter(a, b, ..opts)
+#let ctz-draw-circle(name, ..opts) = _draw-circle(name, ..opts)
 #let ctz-draw-circumcircle(a, b, c, ..opts) = _circumcircle(a, b, c, ..opts)
 #let ctz-draw-incircle(a, b, c, ..opts) = _incircle(a, b, c, ..opts)
 #let ctz-draw-semicircle(a, b, ..opts) = _semicircle(a, b, ..opts)
@@ -1133,6 +1618,8 @@
 #let ctz-draw-fill-angle(vertex, a, c, ..opts) = _fill-angle(vertex, a, c, ..opts)
 #let ctz-draw-label-segment(a, b, ..opts) = _label-segment(a, b, ..opts)
 #let ctz-draw-label-angle(vertex, a, c, ..opts) = _label-angle(vertex, a, c, ..opts)
+#let ctz-label-circle(name, label, pos: "above", dist: 0.2, offset: (0, 0)) = _label-circle(name, label, pos: pos, dist: dist, offset: offset)
+#let ctz-label-polygon(name, label, pos: "center", dist: 0.2, offset: (0, 0)) = _label-polygon(name, label, pos: pos, dist: dist, offset: offset)
 
 // Calculations (return values via context)
 #let ctz-calc-length(a, b) = _calc-length(a, b)

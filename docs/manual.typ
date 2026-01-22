@@ -1,4 +1,4 @@
-#import "../src/lib.typ": *
+#import "@preview/ctz-euclide:0.1.0": *
 
 // ==============================================================================
 // DOCUMENT SETUP
@@ -103,7 +103,8 @@
   #v(1cm)
   #text(size: 11pt)[
     A comprehensive geometry package built on CeTZ\
-    Version 0.1.0
+    Version 0.1.0\
+    Nathan Scheinmann
   ]
 ]
 
@@ -142,7 +143,7 @@
 Import the package in your Typst document:
 
 ```typst
-#import "../src/lib.typ": *
+#import "@preview/ctz-euclide:0.1.0": *
 ```
 
 All figures use the `ctz-canvas` function (re-exported from CeTZ):
@@ -304,7 +305,8 @@ Find the midpoint of a segment:
 
 == Regular Polygons — `ctz-def-regular-polygon`
 
-Generate vertices of a regular $n$-gon:
+Generate vertices of a regular $n$-gon. If you pass a polygon name first, it is registered and can be drawn/labeled by name:
+You can also mark all sides during drawing with `mark` and optional `mark-opts`.
 
 #example(
   [```typst
@@ -313,9 +315,10 @@ Generate vertices of a regular $n$-gon:
     ctz-init()
 
     ctz-def-points(O: (0, 0), A: (3, 0))
-    ctz-def-regular-polygon(("A", "B", "C", "D", "E", "F"), "O", "A")
+    // O is the center; A is the starting vertex that fixes the radius/angle.
+    ctz-def-regular-polygon("Hex", ("A", "B", "C", "D", "E", "F"), "O", "A")
 
-    ctz-draw-line("A", "B", "C", "D", "E", "F", "A", stroke: blue)
+    ctz-draw-polygon("Hex", stroke: blue)
     ctz-draw-points("A", "B", "C", "D", "E", "F", "O")
     ctz-draw-labels("O", O: "below")
   })
@@ -324,13 +327,25 @@ Generate vertices of a regular $n$-gon:
     import cetz.draw: *
     ctz-init()
     ctz-def-points(O: (0, 0), A: (3, 0))
-    ctz-def-regular-polygon(("A", "B", "C", "D", "E", "F"), "O", "A")
-    ctz-draw-line("A", "B", "C", "D", "E", "F", "A", stroke: blue)
+    // O is the center; A is the starting vertex that fixes the radius/angle.
+    ctz-def-regular-polygon("Hex", ("A", "B", "C", "D", "E", "F"), "O", "A")
+    ctz-draw-polygon("Hex", stroke: blue)
     ctz-draw-points("A", "B", "C", "D", "E", "F", "O")
     ctz-draw-labels("O", O: "below")
   },
   length: 0.7cm,
 )
+
+== Named Polygons — `ctz-def-polygon` / `ctz-label-polygon`
+
+Define a polygon once and draw/label it by name:
+
+```typst
+ctz-def-points(A: (0, 0), B: (4, 0), C: (4, 2), D: (0, 2))
+ctz-def-polygon("P1", "A", "B", "C", "D")
+ctz-draw-polygon("P1", stroke: black)
+ctz-label-polygon("P1", $P_1$, pos: "center")
+```
 
 == Linear Combination — `ctz-def-linear`
 
@@ -518,24 +533,28 @@ Find the intersection of two lines:
 
     ctz-def-points(A: (0, 0), B: (4, 3),
               C: (4, 0), D: (0, 2.5))
-    ctz-def-ll("I", ("A", "B"), ("C", "D"))
+    ctz-def-line("L1", "A", "B")
+    ctz-def-line("L2", "C", "D")
+    ctz-def-ll("I", "L1", "L2")
 
-    ctz-draw-line("A", "B", stroke: blue)
-    ctz-draw-line("C", "D", stroke: red)
+    ctz-draw-line("L1", stroke: blue)
+    ctz-draw-line("L2", stroke: red)
 
     ctz-draw-points("A", "B", "C", "D", "I")
-    ctz-draw-labels("I", I: "above left")
+    ctz-draw-labels("I", I: "above")
   })
   ```],
   {
     import cetz.draw: *
     ctz-init()
     ctz-def-points(A: (0, 0), B: (4, 3), C: (4, 0), D: (0, 2.5))
-    ctz-def-ll("I", ("A", "B"), ("C", "D"))
-    ctz-draw-line("A", "B", stroke: blue)
-    ctz-draw-line("C", "D", stroke: red)
+    ctz-def-line("L1", "A", "B")
+    ctz-def-line("L2", "C", "D")
+    ctz-def-ll("I", "L1", "L2")
+    ctz-draw-line("L1", stroke: blue)
+    ctz-draw-line("L2", stroke: red)
     ctz-draw-points("A", "B", "C", "D", "I")
-    ctz-draw-labels("I", I: "above left")
+    ctz-draw-labels("I", I: "above")
   },
 )
 
@@ -551,24 +570,29 @@ Find intersections of a line with a circle:
 
     ctz-def-points(O: (0, 0), R: (3, 0),
               A: (-2, 2), B: (4, 1))
-    ctz-def-lc(("I1", "I2"), ("A", "B"),
-      (center: "O", through: "R"))
+    ctz-def-line("L1", "A", "B")
+    ctz-def-circle("C1", "O", through: "R")
+    ctz-def-lc(("I1", "I2"), "L1", "C1")
 
-    ctz-draw-circle-through("O", "R", stroke: blue)
+    ctz-draw-circle("C1", stroke: blue)
+    ctz-label-circle("C1", $C_1$, pos: "above", dist: 0.2)
     ctz-set-clip(-4, -4, 5, 4)
     ctz-draw-line-global-clip("A", "B", add: (2, 2), stroke: red)
 
     ctz-draw-points("O", "I1", "I2")
     ctz-draw-labels("O", "I1", "I2",
-      O: "below", I1: "above left", I2: "below right")
+      O: "below", I1: "above left", I2: "above right")
   })
   ```],
   {
     import cetz.draw: *
     ctz-init()
     ctz-def-points(O: (0, 0), R: (3, 0), A: (-2, 2), B: (4, 1))
-    ctz-def-lc(("I1", "I2"), ("A", "B"), (center: "O", through: "R"))
-    ctz-draw-circle-through("O", "R", stroke: blue)
+    ctz-def-line("L1", "A", "B")
+    ctz-def-circle("C1", "O", through: "R")
+    ctz-def-lc(("I1", "I2"), "L1", "C1")
+    ctz-draw-circle("C1", stroke: blue)
+    ctz-label-circle("C1", $C_1$, pos: "above", dist: 0.2)
     ctz-set-clip(-4, -4, 5, 4)
     ctz-draw-line-global-clip("A", "B", add: (2, 2), stroke: red)
     ctz-draw-points("O", "I1", "I2")
@@ -578,11 +602,19 @@ Find intersections of a line with a circle:
       "I2",
       O: "below",
       I1: "above left",
-      I2: "below right",
+      I2: "above right",
     )
   },
   length: 0.7cm,
 )
+
+Named line/circle form:
+
+```typst
+ctz-def-line("L1", "A", "B")
+ctz-def-circle("C1", "O", radius: 3)
+ctz-def-lc(("I1", "I2"), "L1", "C1")
+```
 
 == Circle–Circle — `ctz-def-cc`
 
@@ -596,12 +628,14 @@ Find intersections of two circles:
 
     ctz-def-points(O1: (0, 0), O2: (3, 0),
               R1: (2.5, 0), R2: (5.5, 0))
-    ctz-def-cc(("I1", "I2"),
-      (center: "O1", through: "R1"),
-      (center: "O2", through: "R2"))
+    ctz-def-circle("C1", "O1", through: "R1")
+    ctz-def-circle("C2", "O2", through: "R2")
+    ctz-def-cc(("I1", "I2"), "C1", "C2")
 
-    ctz-draw-circle-through("O1", "R1", stroke: blue)
-    ctz-draw-circle-through("O2", "R2", stroke: red)
+    ctz-draw-circle("C1", stroke: blue)
+    ctz-draw-circle("C2", stroke: red)
+    ctz-label-circle("C1", $C_1$, pos: "above left", dist: 0.2)
+    ctz-label-circle("C2", $C_2$, pos: "above right", dist: 0.2)
 
     ctz-draw-points("O1", "O2", "I1", "I2")
     ctz-draw-labels("I1", "I2",
@@ -612,18 +646,26 @@ Find intersections of two circles:
     import cetz.draw: *
     ctz-init()
     ctz-def-points(O1: (0, 0), O2: (3, 0), R1: (2.5, 0), R2: (5.5, 0))
-    ctz-def-cc(
-      ("I1", "I2"),
-      (center: "O1", through: "R1"),
-      (center: "O2", through: "R2"),
-    )
-    ctz-draw-circle-through("O1", "R1", stroke: blue)
-    ctz-draw-circle-through("O2", "R2", stroke: red)
+    ctz-def-circle("C1", "O1", through: "R1")
+    ctz-def-circle("C2", "O2", through: "R2")
+    ctz-def-cc(("I1", "I2"), "C1", "C2")
+    ctz-draw-circle("C1", stroke: blue)
+    ctz-draw-circle("C2", stroke: red)
+    ctz-label-circle("C1", $C_1$, pos: "above left", dist: 0.2)
+    ctz-label-circle("C2", $C_2$, pos: "above right", dist: 0.2)
     ctz-draw-points("O1", "O2", "I1", "I2")
     ctz-draw-labels("I1", "I2", I1: "above", I2: "below")
   },
   length: 0.65cm,
 )
+
+Named circle form:
+
+```typst
+ctz-def-circle("C1", "O1", through: "R1")
+ctz-def-circle("C2", "O2", through: "R2")
+ctz-def-cc(("I1", "I2"), "C1", "C2")
+```
 
 #pagebreak()
 
@@ -661,7 +703,7 @@ The intersection of medians (center of mass):
     ctz-draw-points("A", "B", "C", "G")
     ctz-draw-labels("A", "B", "C", "G",
       A: "below left", B: "below right",
-      C: "above", G: "right")
+      C: "above", G: "above right")
   })
   ```],
   {
@@ -685,7 +727,7 @@ The intersection of medians (center of mass):
       A: "below left",
       B: "below right",
       C: "above",
-      G: "right",
+      G: "above right",
     )
   },
 )
@@ -811,8 +853,8 @@ Intersection of altitudes:
 
     ctz-draw-points("A", "B", "C", "H")
     ctz-draw-labels("A", "B", "C", "H",
-      A: "below left", B: "below right",
-      C: "above", H: "below right")
+      A: "left", B: "right",
+      C: "above right", H: "below right")
   })
   ```],
   {
@@ -834,9 +876,9 @@ Intersection of altitudes:
       "B",
       "C",
       "H",
-      A: "below left",
-      B: "below right",
-      C: "above",
+      A: "left",
+      B: "right",
+      C: "above right",
       H: "below right",
     )
   },
@@ -1159,6 +1201,344 @@ ctz-draw-labels("A", "B", "C",
   C: (pos: "below left", offset: (-0.05, -0.05)))
 ```
 
+== Segments — `ctz-draw-segment`
+
+Draw a segment with optional arrow or bar tips and a dimension label:
+
+```typst
+ctz-draw-segment("A", "B", arrows: "|-|", dim: $5$, dim-pos: "above")
+```
+
+Supported `arrows`: `--` (none), `->`, `<-`, `<->`, `|-|`, `|->`, `<-|`.
+
+#example(
+  [```typst
+  #ctz-canvas(length: 0.8cm, {
+    import cetz.draw: *
+    ctz-init()
+
+    ctz-def-points(A: (0, 0), B: (4, 0), C: (6, 1.5))
+
+    ctz-draw-segment("A", "B", arrows: "|-|", dim: $5$, dim-pos: "above")
+    ctz-draw-segment("B", "C", arrows: "->", dim: $v$, dim-pos: "below")
+    ctz-draw-points("A", "B", "C")
+    ctz-draw-labels("A", "B", "C", A: "below", B: "below", C: "above")
+  })
+  ```],
+  {
+    import cetz.draw: *
+    ctz-init()
+
+    ctz-def-points(A: (0, 0), B: (4, 0), C: (6, 1.5))
+
+    ctz-draw-segment("A", "B", arrows: "|-|", dim: $5$, dim-pos: "above")
+    ctz-draw-segment("B", "C", arrows: "->", dim: $v$, dim-pos: "below")
+    ctz-draw-points("A", "B", "C")
+    ctz-draw-labels("A", "B", "C", A: "below", B: "below", C: "above")
+  },
+  length: 0.8cm,
+)
+
+Mark equal-length segments with ticks:
+
+```typst
+ctz-draw-mark-segment("A", "B", mark: 1)
+ctz-draw-mark-segment("C", "D", mark: 2)
+```
+
+#example(
+  [```typst
+  #ctz-canvas(length: 0.8cm, {
+    import cetz.draw: *
+    ctz-init()
+
+    ctz-def-points(A: (0, 0), B: (4, 0), C: (4, 2.5), D: (0, 2.5))
+    ctz-draw-polygon("A", "B", "C", "D", stroke: black)
+
+    // Opposite sides equal
+    ctz-draw-mark-segment("A", "B", mark: 1)
+    ctz-draw-mark-segment("C", "D", mark: 1)
+    ctz-draw-mark-segment("B", "C", mark: 2)
+    ctz-draw-mark-segment("D", "A", mark: 2)
+
+    ctz-draw-points("A", "B", "C", "D")
+    ctz-draw-labels("A", "B", "C", "D",
+      A: "below left", B: "below right",
+      C: "above right", D: "above left")
+  })
+  ```],
+  {
+    import cetz.draw: *
+    ctz-init()
+
+    ctz-def-points(A: (0, 0), B: (4, 0), C: (4, 2.5), D: (0, 2.5))
+    ctz-draw-polygon("A", "B", "C", "D", stroke: black)
+
+    // Opposite sides equal
+    ctz-draw-mark-segment("A", "B", mark: 1)
+    ctz-draw-mark-segment("C", "D", mark: 1)
+    ctz-draw-mark-segment("B", "C", mark: 2)
+    ctz-draw-mark-segment("D", "A", mark: 2)
+
+    ctz-draw-points("A", "B", "C", "D")
+    ctz-draw-labels("A", "B", "C", "D",
+      A: "below left", B: "below right",
+      C: "above right", D: "above left")
+  },
+  length: 0.8cm,
+)
+
+#example(
+  [```typst
+  #ctz-canvas(length: 0.7cm, {
+    import cetz.draw: *
+    ctz-init()
+
+    ctz-def-points(O: (0, 0), A: (3, 0))
+    ctz-def-regular-polygon("Hex", ("A", "B", "C", "D", "E", "F"), "O", "A")
+
+    ctz-draw-regular-polygon(("A", "B", "C", "D", "E", "F"),
+      stroke: black, mark: 1)
+
+    // Mark all sides with the same tick
+    // (use mark-opts to customize size/position)
+
+    ctz-draw-points("A", "B", "C", "D", "E", "F")
+    ctz-draw-labels("A", "B", "C", "D", "E", "F",
+      A: "right", B: "above right", C: "above left",
+      D: "left", E: "below", F: "below")
+  })
+  ```],
+  {
+    import cetz.draw: *
+    ctz-init()
+
+    ctz-def-points(O: (0, 0), A: (3, 0))
+    ctz-def-regular-polygon("Hex", ("A", "B", "C", "D", "E", "F"), "O", "A")
+
+    ctz-draw-regular-polygon(("A", "B", "C", "D", "E", "F"),
+      stroke: black, mark: 1)
+
+    // Mark all sides with the same tick
+    // (use mark-opts to customize size/position)
+
+    ctz-draw-points("A", "B", "C", "D", "E", "F")
+    ctz-draw-labels("A", "B", "C", "D", "E", "F",
+      A: "right", B: "above right", C: "above left",
+      D: "left", E: "below", F: "below")
+  },
+  length: 0.7cm,
+)
+
+== Segment Measurements — `ctz-draw-measure-segment`
+
+Draw an offset measurement line with dotted fences and a centered label.
+The line breaks around the label and uses open arrowheads by default.
+
+```typst
+ctz-draw-measure-segment("A", "B", label: $5$, offset: 0.3, side: "left")
+```
+
+#example(
+  [```typst
+  #ctz-canvas(length: 0.8cm, {
+    import cetz.draw: *
+    ctz-init()
+
+    ctz-def-points(A: (0, 0), B: (4, 1.2))
+    ctz-draw-segment("A", "B", stroke: black + 1pt)
+
+    // Minimal measurement example
+    ctz-draw-measure-segment("A", "B", label: $ell$, offset: 0.45, side: "left",
+      fence-dash: "dotted")
+
+    ctz-draw-points("A", "B")
+    ctz-draw-labels("A", "B", A: "below", B: "below")
+  })
+  ```],
+  {
+    import cetz.draw: *
+    ctz-init()
+
+    ctz-def-points(A: (0, 0), B: (4, 1.2))
+    ctz-draw-segment("A", "B", stroke: black + 1pt)
+
+    // Minimal measurement example
+    ctz-draw-measure-segment("A", "B", label: $ell$, offset: 0.45, side: "left",
+      fence-dash: "dotted")
+
+    ctz-draw-points("A", "B")
+    ctz-draw-labels("A", "B", A: "below", B: "below")
+  },
+  length: 0.8cm,
+)
+
+#example(
+  [```typst
+  #ctz-canvas(length: 0.8cm, {
+    import cetz.draw: *
+    ctz-init()
+
+    ctz-def-points(A: (0, 0), B: (5, 0), C: (5, 3), D: (0, 3))
+    ctz-draw-polygon("A", "B", "C", "D", stroke: black + 1pt)
+
+    // Rectangle measurements (width and height)
+    ctz-draw-measure-segment("A", "B", label: $w$, offset: 0.45, side: "below")
+    ctz-draw-measure-segment("C", "B", label: $h$, offset: -0.45, side: "right")
+
+    ctz-draw-points("A", "B", "C", "D")
+    ctz-draw-labels("A", "B", "C", "D",
+      A: "below left", B: "below right", C: "above right", D: "above left")
+  })
+  ```],
+  {
+    import cetz.draw: *
+    ctz-init()
+
+    ctz-def-points(A: (0, 0), B: (5, 0), C: (5, 3), D: (0, 3))
+    ctz-draw-polygon("A", "B", "C", "D", stroke: black + 1pt)
+
+    // Rectangle measurements (width and height)
+    ctz-draw-measure-segment("A", "B", label: $w$, offset: 0.45, side: "below")
+    ctz-draw-measure-segment("C", "B", label: $h$, offset: -0.45, side: "right")
+
+    ctz-draw-points("A", "B", "C", "D")
+    ctz-draw-labels("A", "B", "C", "D",
+      A: "below left", B: "below right", C: "above right", D: "above left")
+  },
+  length: 0.8cm,
+)
+
+== Paths — `ctz-draw-path`
+
+Draw polylines with per-segment tips using a TikZ-like string:
+
+```typst
+ctz-draw-path("A--B->C|-|D", stroke: black)
+```
+
+Supported connectors: `--`, `->`, `<-`, `<->`, `|-|`, `|->`, `<-|`.
+
+By default, `ctz-draw-path` draws points as crosses for normal segments and hides
+points that touch a bar connector (`|-|`, `|->`, `<-|`). Labels default to `below`.
+You can override per-point placements or point styles in the path with `{...}`, or via
+`label-overrides`.
+
+Default behavior, label are placed below
+
+#example(
+  [```typst
+  #ctz-canvas(length: 0.8cm, {
+    import cetz.draw: *
+    ctz-init()
+
+    ctz-def-points(
+      A: (0, 0), B: (3, 0), C: (6, 1.5), D: (8, 0),
+    )
+
+    // Default labels below, default point styles
+    ctz-draw-path("A--B->C|-|D", stroke: black)
+  })
+  ```],
+  {
+    import cetz.draw: *
+    ctz-init()
+
+    ctz-def-points(
+      A: (0, 0), B: (3, 0), C: (6, 1.5), D: (8, 0),
+    )
+
+    // Default labels below, default point styles
+    ctz-draw-path("A--B->C|-|D", stroke: black)
+  },
+  length: 0.8cm,
+)
+
+
+#example(
+  [```typst
+  #ctz-canvas(length: 0.8cm, {
+    import cetz.draw: *
+    ctz-init()
+
+    ctz-def-points(
+      A: (0, 0), B: (3, 0), C: (6, 1.5), D: (8, 0),
+    )
+
+    ctz-draw-path("A{below}--B{below}->C{above}|-|D{below}", stroke: black)
+  })
+  ```],
+  {
+    import cetz.draw: *
+    ctz-init()
+
+    ctz-def-points(
+      A: (0, 0), B: (3, 0), C: (6, 1.5), D: (8, 0),
+    )
+
+    ctz-draw-path("A{below}--B{below}->C{above}|-|D{below}", stroke: black)
+  },
+  length: 0.8cm,
+)
+
+Override placements using `label-overrides`:
+
+```typst
+ctz-draw-path("A--B->C|-|D",
+  label-overrides: (A: "left", C: "above right"))
+```
+
+Customize point appearance or disable points/labels:
+
+```typst
+ctz-draw-path("A--B->C|-|D",
+  point-style: "circle",
+  point-color: red,
+  label-pos: "above")
+```
+
+```typst
+ctz-draw-path("A--B->C|-|D",
+  points: false,
+  labels: false)
+```
+
+Per-point overrides inside the path:
+
+```typst
+ctz-draw-path("A{below, style: circle}--B{below}->C{above, style: none}|-|D{below}",
+  stroke: black)
+```
+
+#example(
+  [```typst
+  #ctz-canvas(length: 0.8cm, {
+    import cetz.draw: *
+    ctz-init()
+
+    ctz-def-points(
+      A: (0, 0), B: (3, 0), C: (6, 1.5), D: (8, 0),
+    )
+
+    ctz-draw-path("A{below, style: circle}--B{below}->C{above}|-|D{below}",
+      stroke: black)
+  })
+  ```],
+  {
+    import cetz.draw: *
+    ctz-init()
+
+    ctz-def-points(
+      A: (0, 0), B: (3, 0), C: (6, 1.5), D: (8, 0),
+    )
+
+    ctz-draw-path("A{below, style: circle}--B{below}->C{above}|-|D{below}",
+      stroke: black)
+  },
+  length: 0.8cm,
+)
+
+
 == Global Styling — `ctz-style`
 
 Set default styles for points and labels:
@@ -1275,6 +1655,29 @@ Mark a right angle with a small square:
 
 = Circles
 
+== Named Circle — `ctz-def-circle` / `ctz-draw-circle`
+
+Define a circle once and draw/label it by name.
+This uses the “define → draw → label” pattern:
+- `ctz-def-circle` stores geometry under a name.
+- `ctz-draw-circle` renders it later (you can style it each time).
+- `ctz-label-circle` places text relative to the circle without recomputing center/radius.
+
+```typst
+ctz-def-points(O: (0, 0), A: (3, 0))
+ctz-def-circle("C1", "O", through: "A")
+ctz-draw-circle("C1", stroke: gray)
+ctz-label-circle("C1", $C_1$, pos: "above right", dist: 0.2)
+```
+
+More label placement controls:
+```typst
+ctz-label-circle("C1", $C_1$,
+  pos: "above",
+  dist: 0.25,
+  offset: (0.1, 0))
+```
+
 == Circumcircle — `ctz-draw-circumcircle`
 
 Draw the circumscribed circle of a triangle:
@@ -1361,7 +1764,7 @@ ctz-draw-seg-global-clip("A", "B", stroke: red)
     ctz-show-clip(stroke: gray + 0.5pt)
 
     ctz-draw-points("A", "B")
-    ctz-draw-labels("A", "B", A: "below", B: "above")
+    ctz-draw-labels("A", "B", A: "below", B: "above left")
   })
   ```],
   {
@@ -1372,7 +1775,7 @@ ctz-draw-seg-global-clip("A", "B", stroke: red)
     ctz-draw-line-global-clip("A", "B", add: (5, 5), stroke: blue)
     ctz-show-clip(stroke: gray + 0.5pt)
     ctz-draw-points("A", "B")
-    ctz-draw-labels("A", "B", A: "below", B: "above")
+    ctz-draw-labels("A", "B", A: "below", B: "above left")
   },
   length: 0.7cm,
 )
@@ -1414,9 +1817,12 @@ Available raw functions:
 
 == Point Definition
 - `ctz-def-points(A: (x, y), ...)` — Define named points
+- `ctz-def-line(name, a, b)` — Named line from two points
+- `ctz-def-circle(name, center, radius|through)` — Named circle
+- `ctz-def-polygon(name, a, b, c, ...)` — Named polygon
 - `ctz-def-midpoint(name, a, b)` — Midpoint of segment
 - `ctz-def-linear(name, a, b, k)` — Point at ratio k along line
-- `ctz-def-regular-polygon(names, center, first)` — Regular n-gon vertices
+- `ctz-def-regular-polygon([name,] names, center, first)` — Regular n-gon vertices (optionally register polygon name)
 - `ctz-def-point-on-circle(name, center, radius, angle)` — Point on circle at angle
 - `ctz-def-equilateral(name, a, b)` — Third vertex of equilateral triangle
 - `ctz-def-golden(name, a, b)` — Golden ratio point
@@ -1456,6 +1862,15 @@ Available raw functions:
 - `ctz-draw-angle(vertex, a, b, ...)` — Mark angle
 - `ctz-draw-mark-right-angle(a, vertex, c, ...)` — Right angle mark
 - `ctz-draw-segment(a, b, ...)` — Draw segment
+- `ctz-draw-measure-segment(a, b, ...)` — Offset measurement with fences and label
+- `ctz-draw-path(spec, ...)` — Draw path with per-segment tips
+- `ctz-draw-polygon(points...)` — Draw polygon (triangle, quadrilateral, etc.)
+- `ctz-draw-fill-polygon(points...)` — Fill polygon
+- `ctz-draw-regular-polygon(names, ...)` — Draw regular polygon by vertex names
+- `ctz-draw-fill-regular-polygon(names, ...)` — Fill regular polygon by vertex names
+- `ctz-draw-circle(name, ...)` — Draw named circle
+- `ctz-label-circle(name, label, ...)` — Label named circle
+- `ctz-label-polygon(name, label, ...)` — Label named polygon
 - `ctz-draw-circumcircle(a, b, c, ...)` — Circumscribed circle
 - `ctz-draw-incircle(a, b, c, ...)` — Inscribed circle
 
@@ -1700,10 +2115,10 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
     ctz-style(point: (shape: "dot", size: 0.08, fill: black))
 
     ctz-def-points(O: (0, 0), V1: (4, 0))
-    ctz-def-regular-polygon(("A", "B", "C", "D", "E"), "O", "V1")
+    ctz-def-regular-polygon("Pent", ("A", "B", "C", "D", "E"), "O", "V1")
 
     // Pentagon
-    ctz-draw-line("A", "B", "C", "D", "E", "A", stroke: black + 1.5pt)
+    ctz-draw-polygon("Pent", stroke: black + 1.5pt)
 
     // All diagonals
     ctz-draw-line("A", "C", stroke: blue + 0.8pt)
@@ -1737,10 +2152,10 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
   ctz-style(point: (shape: "dot", size: 0.08, fill: black))
 
   ctz-def-points(O: (0, 0), V1: (4, 0))
-  ctz-def-regular-polygon(("A", "B", "C", "D", "E"), "O", "V1")
+  ctz-def-regular-polygon("Pent", ("A", "B", "C", "D", "E"), "O", "V1")
 
   // Pentagon
-  ctz-draw-line("A", "B", "C", "D", "E", "A", stroke: black + 1.5pt)
+  ctz-draw-polygon("Pent", stroke: black + 1.5pt)
 
   // All diagonals
   ctz-draw-line("A", "C", stroke: blue + 0.8pt)
@@ -1901,17 +2316,15 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
     // Base points
     ctz-draw-line("A", "B", stroke: black + 1pt)
 
-    ctz-draw-points("A", "B", "O", "E", "I", "P1", "P2", "P3", "P4")
+    ctz-draw-points("B", "O", "E", "I", "P1", "P2", "P3", "P4")
     ctz-draw-labels(
-      "A",
       "B",
       "E",
       "I",
       "P1",
-      A: "below",
       B: "below",
       E: "below left",
-      I: "below",
+      I: "above right",
       P1: (pos: "above", offset: (0, 0.15)),
     )
     ctz-draw-labels("O", O: (pos: "below", offset: (0, -0.15)))
@@ -1945,13 +2358,12 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
   ctz-draw-line("P1", "B", stroke: red + 0.8pt)
   ctz-draw-line("A", "B", stroke: black + 1pt)
 
-  ctz-draw-points("A", "B", "O", "E", "I", "P1", "P2", "P3", "P4")
+  ctz-draw-points( "B", "O", "E", "I", "P1", "P2", "P3", "P4")
   ctz-draw-labels(
-    "A", "B", "E", "I", "P1", "O",
-    A: "below left",
+     "B", "E", "I", "P1", "O",
     B: "below right",
     E: "left",
-    I: "right",
+    I: "above right",
     P1: "above",
     O: "below",
   )
@@ -2003,9 +2415,9 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
       "B",
       "C",
       "H",
-      A: "below left",
-      B: "below right",
-      C: "above",
+      A: "left",
+      B: "below",
+      C: "above right",
       H: (pos: "below right", offset: (0.1, -0.05)),
     )
   },
@@ -2045,9 +2457,9 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
   ctz-draw-points("A", "B", "C", "H", "Ha", "Hb", "Hc")
   ctz-draw-labels(
     "A", "B", "C", "H",
-    A: "below left",
-    B: "below right",
-    C: "above",
+    A: "left",
+    B: "below",
+    C: "above right",
     H: "right",
   )
 })
@@ -2259,7 +2671,7 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
   )
 })
 ```],
-  length: 0.8cm,
+  length: 0.5cm,
 )
 
 #full-figure(

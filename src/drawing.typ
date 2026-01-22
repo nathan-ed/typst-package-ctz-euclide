@@ -81,7 +81,7 @@
     let py = dx / len * size
 
     // Draw ticks
-    let spacing = 0.08
+    let spacing = size * 2.4
     for i in range(count) {
       let offset = (i - (count - 1) / 2) * spacing
       let cx = mx + offset * dx / len
@@ -239,16 +239,18 @@
       final-direction = if cross >= 0 { "ccw" } else { "cw" }
     }
 
-    // Draw the angle arc using cetz.angle
-    cetz-angle.angle(
-      vertex, a, b,
-      radius: radius,
-      direction: final-direction,
-      stroke: stroke,
-      fill: fill,
-      name: name,
-      label: none,  // We handle label ourselves
-    )
+    // Draw the angle arc using cetz.angle on the background layer
+    cetz.draw.on-layer(-1, {
+      cetz-angle.angle(
+        vertex, a, b,
+        radius: radius,
+        direction: final-direction,
+        stroke: stroke,
+        fill: fill,
+        name: name,
+        label: none,  // We handle label ourselves
+      )
+    })
   })
 
   // If there's a label, position it along the angle bisector
@@ -266,7 +268,7 @@
       let perp = (-bisector.at(1), bisector.at(0))
 
       // Place label along bisector direction from vertex
-      let lr = if label-radius == auto { radius + 0.2 } else { label-radius }
+      let lr = if label-radius == auto { radius + 0.3 } else { label-radius }
 
       // Apply offsets relative to bisector coordinate system
       // label-offset.at(0) = along bisector, label-offset.at(1) = perpendicular
@@ -299,6 +301,7 @@
   ),
   label: (
     padding: 0.15,
+    single-padding: 0.25,
   ),
 )
 
@@ -381,11 +384,16 @@
       }
 
       let anchor = draw.tkz-pos-to-anchor(pos)
+      let label-padding = if pos in ("above", "below", "left", "right") {
+        style.label.single-padding
+      } else {
+        padding
+      }
       let coord = pt-func(name)
       let (_, c) = cetz.coordinate.resolve(ctx, coord)
       let label-coord = (c.at(0) + offset.at(0), c.at(1) + offset.at(1))
 
-      cetz-draw.content(label-coord, [$#name$], anchor: anchor, padding: padding)
+      cetz-draw.content(label-coord, [$#name$], anchor: anchor, padding: label-padding)
     }
   })
 }
@@ -454,10 +462,12 @@
     let mark-start = none
     let mark-end = none
     if arrows != none {
-      if arrows == "->" { mark-end = (symbol: ">") }
-      else if arrows == "<-" { mark-start = (symbol: ">") }
-      else if arrows == "<->" { mark-start = (symbol: ">"); mark-end = (symbol: ">") }
-      else if arrows == "|-|" { mark-start = (symbol: "|"); mark-end = (symbol: "|") }
+      if arrows == "->" { mark-end = ">" }
+      else if arrows == "<-" { mark-start = ">" }
+      else if arrows == "<->" { mark-start = ">"; mark-end = ">" }
+      else if arrows == "|-|" { mark-start = "|"; mark-end = "|" }
+      else if arrows == "|->" { mark-start = "|"; mark-end = ">" }
+      else if arrows == "<-|" { mark-start = ">"; mark-end = "|" }
     }
 
     // Draw the segment
@@ -488,6 +498,149 @@
 
         cetz-draw.content(label-pos, dim)
       }
+    }
+  })
+}
+
+/// Draw a measurement line offset from a segment, with fences and label
+/// Similar to TikZ/tkz-euclide dim option
+///
+/// Features:
+/// - Line parallel to segment at specified offset
+/// - Perpendicular connector/fence lines from segment endpoints to dimension line
+/// - Arrows pointing outward at both ends
+/// - Label centered along the line with line breaking around it (sloped text)
+///
+/// Usage: draw-measure-segment(cetz-draw, pt, "A", "B", label: $5$, offset: 0.3)
+///
+/// Parameters:
+/// - stroke: Color and thickness (e.g., black + 0.6pt)
+/// - fence-stroke: Stroke for fence lines (default: auto = same as stroke)
+/// - fence-dash: Dash style for fence lines (default: "dotted")
+/// - arrows: Arrow style ("<->", "->", "<-", or none)
+/// - arrow-size: Size of arrow heads
+/// - label-gap: Extra padding around label (gap auto-adjusts to text width)
+/// - label-size: Font size for label text
+#let draw-measure-segment(
+  cetz-draw,
+  pt-func,
+  p1-name,
+  p2-name,
+  label: none,
+  offset: 0.3,
+  side: "left",
+  stroke: black + 0.6pt,
+  fence-stroke: auto,
+  fence-dash: "dotted",
+  arrows: "<->",
+  open-arrows: true,
+  arrow-size: 0.12,
+  label-pos: 0.5,
+  label-gap: 0.15,
+  label-angle: auto,
+  label-size: 0.85em,
+) = {
+  cetz-draw.get-ctx(ctx => {
+    let (_, c1) = cetz.coordinate.resolve(ctx, pt-func(p1-name))
+    let (_, c2) = cetz.coordinate.resolve(ctx, pt-func(p2-name))
+
+    let dx = c2.at(0) - c1.at(0)
+    let dy = c2.at(1) - c1.at(1)
+    let len = calc.sqrt(dx*dx + dy*dy)
+    if len < 0.001 { return }
+
+    // Unit direction and perpendicular
+    let ux = dx / len
+    let uy = dy / len
+    let px = -uy
+    let py = ux
+    if side == "right" {
+      px = -px
+      py = -py
+    } else if side == "above" {
+      if py < 0 or (py == 0 and px > 0) {
+        px = -px
+        py = -py
+      }
+    } else if side == "below" {
+      if py > 0 or (py == 0 and px < 0) {
+        px = -px
+        py = -py
+      }
+    }
+
+    // Offset points for the measurement line
+    let ox = px * offset
+    let oy = py * offset
+    let m1 = (c1.at(0) + ox, c1.at(1) + oy)
+    let m2 = (c2.at(0) + ox, c2.at(1) + oy)
+
+    // Fence stroke defaults to same as main stroke if auto
+    let actual-fence-stroke = if fence-stroke == auto { stroke } else { fence-stroke }
+
+    // Fence lines from segment endpoints to measurement line
+    cetz-draw.line(c1, m1, stroke: actual-fence-stroke, dash: fence-dash)
+    cetz-draw.line(c2, m2, stroke: actual-fence-stroke, dash: fence-dash)
+
+    // Main stroke for measurement line
+    let main-stroke = stroke
+
+    // Calculate gap size based on label width (if present)
+    let gap = 0
+    if label != none {
+      // Measure the label text to get its width
+      let label-content = text(size: label-size)[#label]
+      let label-size-measured = measure(label-content)
+      // Gap = text width + padding on both sides
+      // Convert from pt to canvas units (assuming 1cm = 28.35pt default)
+      let text-width-cm = label-size-measured.width / 28.35pt
+      gap = text-width-cm + label-gap  // label-gap becomes padding
+    }
+
+    let hx = (m2.at(0) - m1.at(0)) * label-pos
+    let hy = (m2.at(1) - m1.at(1)) * label-pos
+    let gdx = ux * gap / 2
+    let gdy = uy * gap / 2
+    let g1 = (m1.at(0) + hx - gdx, m1.at(1) + hy - gdy)
+    let g2 = (m1.at(0) + hx + gdx, m1.at(1) + hy + gdy)
+
+    // Draw measurement line in two parts with gap for label
+    let mark-style = if open-arrows { (symbol: ">", size: arrow-size, fill: none) } else { (symbol: ">", size: arrow-size) }
+
+    // Part 1: from m1 to gap-start with arrow pointing inward
+    if arrows == "<->" or arrows == "<-" {
+      cetz-draw.line(m1, g1, stroke: main-stroke,
+        mark: (start: mark-style))
+    } else {
+      cetz-draw.line(m1, g1, stroke: main-stroke)
+    }
+
+    // Part 2: from m2 to gap-end with arrow pointing inward
+    if arrows == "<->" or arrows == "->" {
+      cetz-draw.line(m2, g2, stroke: main-stroke,
+        mark: (start: mark-style))
+    } else {
+      cetz-draw.line(g2, m2, stroke: main-stroke)
+    }
+
+    // Draw label along the measurement line
+    if label != none {
+      // Calculate angle from segment direction
+      let angle = label-angle
+      if angle == auto {
+        // NOTE: Typst's calc.atan2 uses (x, y) argument order, not (y, x)!
+        angle = calc.atan2(dx, dy)
+      }
+      // Keep text readable (not upside down)
+      if angle > 90deg { angle = angle - 180deg }
+      else if angle < -90deg { angle = angle + 180deg }
+
+      // Position label at midpoint of measurement line (between g1 and g2)
+      // The label sits ON the line itself, not offset
+      let mid-x = m1.at(0) + (m2.at(0) - m1.at(0)) * label-pos
+      let mid-y = m1.at(1) + (m2.at(1) - m1.at(1)) * label-pos
+
+      cetz-draw.content((mid-x, mid-y), text(size: label-size)[#label], angle: angle, anchor: "center")
     }
   })
 }
@@ -724,7 +877,7 @@
 
 /// Mark a segment with tick marks (|, ||, |||)
 /// Usage: mark-segment(cetz-draw, pt, "A", "B", mark: 1, size: 0.15, color: black)
-#let mark-segment(cetz-draw, pt-func, p1-name, p2-name, mark: 1, size: 0.15, pos: 0.5, color: black) = {
+#let mark-segment(cetz-draw, pt-func, p1-name, p2-name, mark: 1, size: 0.15, pos: 0.5, color: black, slant: 20deg, thickness: 1pt) = {
   cetz-draw.get-ctx(ctx => {
     let (_, c1) = cetz.coordinate.resolve(ctx, pt-func(p1-name))
     let (_, c2) = cetz.coordinate.resolve(ctx, pt-func(p2-name))
@@ -739,18 +892,31 @@
     let mx = c1.at(0) + pos * dx
     let my = c1.at(1) + pos * dy
 
-    // Perpendicular direction
-    let px = -dy / len * size
-    let py = dx / len * size
+    // Perpendicular direction (unit), normalized to be direction-invariant
+    let ux = -dy / len
+    let uy = dx / len
+    if ux < 0 or (ux == 0 and uy < 0) {
+      ux = -ux
+      uy = -uy
+    }
+
+    // Slight slant for tick marks; double ticks slant the other way
+    let s = if type(slant) == angle { slant } else { slant * 1deg }
+    if mark >= 2 { s = -s }
+    let rx = ux * calc.cos(s) - uy * calc.sin(s)
+    let ry = ux * calc.sin(s) + uy * calc.cos(s)
+
+    let px = rx * size
+    let py = ry * size
 
     // Spacing between ticks
-    let spacing = 0.08
+    let spacing = size * 1.1
 
     for i in range(mark) {
       let offset = (i - (mark - 1) / 2) * spacing
       let cx = mx + offset * dx / len
       let cy = my + offset * dy / len
-      cetz-draw.line((cx - px, cy - py), (cx + px, cy + py), stroke: color + 1.5pt)
+      cetz-draw.line((cx - px, cy - py), (cx + px, cy + py), stroke: color + thickness)
     }
   })
 }
@@ -779,24 +945,26 @@
     vc-x = vc-x / vc-len * size
     vc-y = vc-y / vc-len * size
 
-    if german {
-      // German style: small arc
-      let start-angle = calc.atan2(va-y, va-x)
-      let end-angle = calc.atan2(vc-y, vc-x)
-      let start-deg = if type(start-angle) == angle { start-angle } else { start-angle * 1deg }
-      let end-deg = if type(end-angle) == angle { end-angle } else { end-angle * 1deg }
-      cetz-draw.arc(pv, start: start-deg, stop: end-deg, radius: size, stroke: color + 1pt)
-    } else {
-      // Standard square marker
-      let p1 = (pv.at(0) + va-x, pv.at(1) + va-y)
-      let p2 = (pv.at(0) + va-x + vc-x, pv.at(1) + va-y + vc-y)
-      let p3 = (pv.at(0) + vc-x, pv.at(1) + vc-y)
+    cetz.draw.on-layer(-1, {
+      if german {
+        // German style: small arc
+        let start-angle = calc.atan2(va-y, va-x)
+        let end-angle = calc.atan2(vc-y, vc-x)
+        let start-deg = if type(start-angle) == angle { start-angle } else { start-angle * 1deg }
+        let end-deg = if type(end-angle) == angle { end-angle } else { end-angle * 1deg }
+        cetz-draw.arc(pv, start: start-deg, stop: end-deg, radius: size, stroke: color + 1pt)
+      } else {
+        // Standard square marker
+        let p1 = (pv.at(0) + va-x, pv.at(1) + va-y)
+        let p2 = (pv.at(0) + va-x + vc-x, pv.at(1) + va-y + vc-y)
+        let p3 = (pv.at(0) + vc-x, pv.at(1) + vc-y)
 
-      cetz-draw.line(p1, p2, p3, stroke: color + 1pt)
-      if fill != none {
-        cetz-draw.line(pv, p1, p2, p3, close: true, fill: fill, stroke: none)
+        cetz-draw.line(p1, p2, p3, stroke: color + 1pt)
+        if fill != none {
+          cetz-draw.line(pv, p1, p2, p3, close: true, fill: fill, stroke: none)
+        }
       }
-    }
+    })
   })
 }
 
@@ -809,12 +977,14 @@
     color
   }
 
-  cetz-angle-mod.angle(
-    pt-func(vertex-name), pt-func(a-name), pt-func(c-name),
-    radius: radius,
-    fill: actual-color,
-    stroke: none,
-  )
+  cetz.draw.on-layer(-1, {
+    cetz-angle-mod.angle(
+      pt-func(vertex-name), pt-func(a-name), pt-func(c-name),
+      radius: radius,
+      fill: actual-color,
+      stroke: none,
+    )
+  })
 }
 
 /// Label a segment with text
