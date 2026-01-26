@@ -1,5 +1,4 @@
 #import "/src/lib.typ": *
-#import "/src/conic.typ" as conic
 
 #set page(width: 20cm, height: 22cm, margin: 1cm)
 
@@ -8,40 +7,38 @@
 #ctz-canvas({
   ctz-init()
 
-  let F = (0, 0)
-  let p = 2.0
-  let theta = 0deg
+  // Create parabola: focus F at origin, directrix at x = -4 (for p=2)
+  ctz-def-points(F: (0, 0), A: (-4, -10), B: (-4, 10))
+  ctz-def-parabola("p", "F", ("A", "B"), extent: 6, steps: 120)
 
-  // Parabola from focus, p, angle
-  ctz-draw-parabola-focus(F, p, angle: theta, extent: 6, stroke: (paint: black, thickness: 1.2pt))
+  // Draw the parabola
+  ctz-draw("p", stroke: (paint: black, thickness: 1.2pt))
+  ctz-draw(points: ("F",))
+  ctz-draw-labels("F", F: "right")
 
-  ctz-draw(points: (F,))
-  ctz-draw-text(F.at(0) + 0.3, F.at(1) + 0.3, [$F$])
+  // Circle: center C = V + 2*(V-F), tangent to parabola
+  // For parabola with focus at origin and p=2, vertex V is at (-2, 0)
+  // So C = (-2, 0) + 2*((-2,0) - (0,0)) = (-2, 0) + 2*(-2, 0) = (-6, 0)
+  ctz-def-points(C: (-6, 0))
+  ctz-draw(circle-r: ("C", 0.8), stroke: (paint: black, thickness: 0.8pt))
 
-  let (D1, D2, V) = conic.parabola-directrix-raw(F, p, angle: theta)
+  // Four points on circle using point-on-circle (no manual cos/sin!)
+  ctz-def-point-on-circle("M0", "C", 0.8, 30)
+  ctz-def-point-on-circle("M1", "C", 0.8, 120)
+  ctz-def-point-on-circle("M2", "C", 0.8, 210)
+  ctz-def-point-on-circle("M3", "C", 0.8, 300)
 
-  // Circle centered at C = V + 2*(V-F)
-  let C = (V.at(0) + 2 * (V.at(0) - F.at(0)), V.at(1) + 2 * (V.at(1) - F.at(1)))
-  let r = 0.8
-  ctz-draw(circle-r: (C, r), stroke: (paint: black, thickness: 0.8pt))
+  ctz-draw(points: ("M0", "M1", "M2", "M3"))
+  ctz-draw-labels("M0", "M1", "M2", "M3",
+    M0: "right", M1: "above", M2: "left", M3: "below")
 
-  for i in (0, 90, 180, 270) {
-    let ang = (i + 30) * 1deg
-    let M = (C.at(0) + r * calc.cos(ang), C.at(1) + r * calc.sin(ang))
-    ctz-draw(points: (M,))
-    let label = [$M_#(i/90)$]
-    let ux = M.at(0) - C.at(0)
-    let uy = M.at(1) - C.at(1)
-    let len = calc.sqrt(ux*ux + uy*uy)
-    let ux2 = if len > 0 { ux/len } else { 0 }
-    let uy2 = if len > 0 { uy/len } else { 0 }
-    ctz-draw-text(M.at(0) + 0.2 * ux2, M.at(1) + 0.2 * uy2, label)
-
-    let tangents = conic.parabola-tangents-from-point-raw(F, D1, D2, M, length: 5)
-    for t in tangents {
-      let (p1, p2, tp) = t
-      ctz-draw(line: (p1, p2), stroke: (paint: red, thickness: 0.8pt))
-      ctz-draw(points: (tp,), style: (shape: "dot", size: 3pt, fill: blue))
-    }
-  }
+  // Draw tangent lines from each M point to the parabola
+  ctz-draw-parabola-tangents-from-point("F", ("A", "B"), "M0",
+    stroke: (paint: red, thickness: 0.8pt), length: 5)
+  ctz-draw-parabola-tangents-from-point("F", ("A", "B"), "M1",
+    stroke: (paint: red, thickness: 0.8pt), length: 5)
+  ctz-draw-parabola-tangents-from-point("F", ("A", "B"), "M2",
+    stroke: (paint: red, thickness: 0.8pt), length: 5)
+  ctz-draw-parabola-tangents-from-point("F", ("A", "B"), "M3",
+    stroke: (paint: red, thickness: 0.8pt), length: 5)
 })
