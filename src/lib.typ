@@ -403,7 +403,7 @@
     let c = _resolve-point(ctx, center)
     let rx-num = if type(rx) == length { rx / 1cm } else { rx }
     let ry-num = if type(ry) == length { ry / 1cm } else { ry }
-    let ang = if type(angle) == type(0deg) { angle } else { angle * 1deg }
+    let ang = util.to-angle(angle)
 
     let conics = _get-conics(ctx)
     conics.insert(name, (type: "ellipse", center: c, rx: rx-num, ry: ry-num, angle: ang))
@@ -1869,7 +1869,7 @@
       let c = _resolve-point(ctx, center)
       let rx-num = if type(rx) == length { rx / 1cm } else { rx }
       let ry-num = if type(ry) == length { ry / 1cm } else { ry }
-      let ang = if type(angle) == type(0deg) { angle } else { angle * 1deg }
+      let ang = util.to-angle(angle)
       drawing.draw-ellipse(cetz.draw, c, rx-num, ry-num, angle: ang, steps: steps, ..other-opts)
     })
   }
@@ -2656,3 +2656,36 @@
 #let ctz-project-point-on-line = _project-point-on-line
 
 #let ctz-rotate-point = _rotate-point
+
+// Export raw conic functions for advanced usage in documentation/examples
+
+// Export raw conic functions for advanced usage in documentation/examples
+#let ellipse-foci-raw = conic.ellipse-foci-raw
+#let ellipse-angpoint-raw = conic.ellipse-angpoint-raw  
+#let ellipse-point-raw = conic.ellipse-point-raw
+#let ellipse-points-raw = conic.ellipse-points-raw
+#let ellipse-tangents-from-point-raw = conic.ellipse-tangents-from-point-raw
+#let parabola-directrix-raw = conic.parabola-directrix-raw
+#let parabola-tangents-from-point-raw = conic.parabola-tangents-from-point-raw
+#let parabola-point-raw = conic.parabola-point-raw
+#let parabola-tangent-raw = conic.parabola-tangent-raw
+
+// Export drawing helper functions for grid/annotation examples
+#let triangular-pos = drawing.triangular-pos
+#let pascal-pos = drawing.pascal-pos
+#let grid-pos = drawing.grid-pos
+#let hex-pos = drawing.hex-pos
+#let binomial = drawing.binomial
+#let draw-triangular-grid = drawing.draw-triangular-grid
+#let draw-rectangular-grid = drawing.draw-rectangular-grid
+#let draw-pascal-values = drawing.draw-pascal-values
+#let draw-row-labels = drawing.draw-row-labels
+#let draw-diagonal-labels = drawing.draw-diagonal-labels
+#let highlight-fill = drawing.highlight-fill
+#let highlight-outline = drawing.highlight-outline
+#let highlight-many = drawing.highlight-many
+#let curved-arrow = drawing.curved-arrow
+#let smooth-arrow = drawing.smooth-arrow
+#let draw-addition-indicator = drawing.draw-addition-indicator
+#let draw-brace-h = drawing.draw-brace-h
+#let draw-brace-v = drawing.draw-brace-v

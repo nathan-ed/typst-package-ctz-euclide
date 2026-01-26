@@ -19,13 +19,8 @@
     let len = calc.sqrt(v.at(0) * v.at(0) + v.at(1) * v.at(1))
     (v.at(0) / len, v.at(1) / len)
   }
-  let place-dir = (pt, ang, dist, content) => {
-    let dx = dist * calc.cos(ang)
-    let dy = dist * calc.sin(ang)
-    ctz-draw-text(pt.at(0) + dx, pt.at(1) + dy, content)
-  }
 
-  // Axes (no arrows)
+  // Axes
   ctz-draw(line: ((-5, 0), (5, 0)), stroke: (paint: black, thickness: 0.6pt))
   ctz-draw(line: ((0, -5), (0, 5)), stroke: (paint: black, thickness: 0.6pt))
 
@@ -34,18 +29,11 @@
   ctz-draw(circle-r: (O, b), stroke: green-stroke)
   ctz-draw(ellipse: (O, b, a, 0deg), stroke: red-stroke)
 
-  // H and H'
+  // Key points
   let H = (a / 2, 0)
   let Hp = (0, -b / 2)
-  ctz-draw(points: (H, Hp))
-  ctz-draw-text(H.at(0) + 0.1, H.at(1) - 0.3, [$H$])
-  ctz-draw-text(Hp.at(0) + 0.1, Hp.at(1) - 0.3, [$H'$])
-
-  // M and N from intersections
   let M = (a / 2, a * calc.sqrt(3) / 2)
   let N = (-b * calc.sqrt(3) / 2, -b / 2)
-
-  // Affine images on ellipse
   let Mp = (b / a * M.at(0), M.at(1))
   let Np = (N.at(0), a / b * N.at(1))
 
@@ -90,12 +78,17 @@
   ctz-draw(line: (A1, A2), stroke: red-stroke, mark: (end: ">", start: ">"))
   ctz-draw(line: (B1, B2), stroke: red-stroke, mark: (end: ">", start: ">"))
 
-  // Points and labels
-  ctz-draw(points: (M, Mp, N, Np, P, Pp))
-  ctz-draw-text(M.at(0) + 0.1, M.at(1) + 0.1, [$M$])
-  ctz-draw-text(Mp.at(0) + 0.1, Mp.at(1) + 0.1, [$M'$])
-  ctz-draw-text(N.at(0) - 0.4, N.at(1) - 0.2, [$N$])
-  ctz-draw-text(Np.at(0) + 0.1, Np.at(1) + 0.1, [$N'$])
-  place-dir(P, 60deg, 0.35, [$P$])
-  place-dir(Pp, 30deg, 0.35, [$P'$])
+  // Register and label points using auto placement
+  ctz-def-points(O: O, H: H, Hp: Hp, M: M, Mp: Mp, N: N, Np: Np, P: P, Pp: Pp)
+  ctz-draw(points: ("O", "H", "Hp", "M", "Mp", "N", "Np", "P", "Pp"), labels: (
+    O: "auto",
+    H: "auto",
+    Hp: "auto",
+    M: "auto",
+    Mp: "auto",
+    N: "auto",
+    Np: "auto",
+    P: "auto",
+    Pp: "auto",
+  ))
 })

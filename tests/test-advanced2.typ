@@ -1,42 +1,52 @@
 #import "/src/lib.typ": *
+#import "/src/conic.typ" as conic
 
-#set page(width: 20cm, height: 22cm, margin: 1cm)
+#set page(width: 18cm, height: 14cm, margin: 1cm)
 
-= Parabola with Tangents from Circle Points
+= Advanced Example 4
 
-#ctz-canvas({
+#ctz-canvas(length: 1cm, {
   ctz-init()
 
-  // Create parabola: focus F at origin, directrix at x = -4 (for p=2)
-  ctz-def-points(F: (0, 0), A: (-4, -10), B: (-4, 10))
-  ctz-def-parabola("p", "F", ("A", "B"), extent: 6, steps: 120)
+  let F = (0, 0)
+  let p = 0.35
+  let theta = 25deg
 
-  // Draw the parabola
-  ctz-draw("p", stroke: (paint: black, thickness: 1.2pt))
-  ctz-draw(points: ("F",), labels: (F: "right"))
+  // Give the construction more breathing room.
+  ctz-set-clip(-4, -4, 12, 12)
 
-  // Circle: center C = V + 2*(V-F), tangent to parabola
-  // For parabola with focus at origin and p=2, vertex V is at (-2, 0)
-  // So C = (-2, 0) + 2*((-2,0) - (0,0)) = (-2, 0) + 2*(-2, 0) = (-6, 0)
-  ctz-def-points(C: (-6, 0))
-  ctz-draw(circle-r: ("C", 4), stroke: (paint: black, thickness: 0.8pt))
+  ctz-draw-parabola-focus(F, p, angle: theta, extent: 4, stroke: (paint: black, thickness: 1pt))
 
-  // Four points on circle using point-on-circle (no manual cos/sin!)
-  ctz-def-point-on-circle("M0", "C", 4, 30)
-  ctz-def-point-on-circle("M1", "C", 4, 120)
-  ctz-def-point-on-circle("M2", "C", 4, 210)
-  ctz-def-point-on-circle("M3", "C", 4, 300)
+  let (D1, D2, V) = conic.parabola-directrix-raw(F, p, angle: theta)
 
-  ctz-draw(points: ("M0", "M1", "M2", "M3"),
-    labels: (M0: "right", M1: "above", M2: "left", M3: "below"))
+  // Circle positioned to be tangent to the parabola (touching at one point only)
+  // With wider parabola (larger p), adjust position for tangency
+  // TODO: No automatic tangency function available - adjusting manually
+  let C = (V.at(0) + 10 * (V.at(0) - F.at(0)), V.at(1) + 10 * (V.at(1) - F.at(1)))
+  let r = 1.4
+  ctz-draw(circle-r: (C, r), stroke: (paint: black, thickness: 0.6pt))
 
-  // Draw tangent lines from each M point to the parabola
-  ctz-draw-parabola-tangents-from-point("F", ("A", "B"), "M0",
-    stroke: (paint: red, thickness: 0.8pt), length: 5)
-  ctz-draw-parabola-tangents-from-point("F", ("A", "B"), "M1",
-    stroke: (paint: red, thickness: 0.8pt), length: 5)
-  ctz-draw-parabola-tangents-from-point("F", ("A", "B"), "M2",
-    stroke: (paint: red, thickness: 0.8pt), length: 5)
-  ctz-draw-parabola-tangents-from-point("F", ("A", "B"), "M3",
-    stroke: (paint: red, thickness: 0.8pt), length: 5)
+  // Spread M points to avoid congestion - cluster on left side
+  let M1 = (C.at(0) + r * calc.cos(150deg), C.at(1) + r * calc.sin(150deg))
+  let M2 = (C.at(0) + r * calc.cos(210deg), C.at(1) + r * calc.sin(210deg))
+  let M3 = (C.at(0) + r * calc.cos(250deg), C.at(1) + r * calc.sin(250deg))
+
+  // Tangents and intersection points
+  for M in (M1, M2, M3) {
+    let tangents = conic.parabola-tangents-from-point-raw(F, D1, D2, M, length: 1.5)
+    for t in tangents {
+      let (p1, p2, tp) = t
+      ctz-draw(line: (p1, p2), stroke: (paint: red, thickness: 0.8pt))
+      ctz-draw(points: (tp,), style: (shape: "dot", size: 1pt, fill: blue))
+    }
+  }
+
+  // Register points for labels with explicit positioning
+  ctz-def-points(C: C, M1: M1, M2: M2, M3: M3)
+  ctz-draw(points: ("C", "M1", "M2", "M3"), labels: (
+    C: (pos: "below", offset: (0, 0)),
+    M1: (pos: "above left", offset: (-0.2, 0.15)),
+    M2: (pos: "above left", offset: (-0.5, 0)),
+    M3: (pos: "below right", offset: (0.2, -0.15)),
+  ))
 })

@@ -1,10 +1,19 @@
 // ctz-euclide/src/drawing.typ
 // High-level drawing functions that work directly with cetz.draw
+// Re-exports from submodules plus main orchestration code
 
 #import "@preview/cetz:0.4.2" as cetz
 #import "util.typ"
 #import "draw.typ"
 #import "conic.typ"
+
+// Import and re-export from submodules
+#import "drawing/clipping.typ": *
+#import "drawing/primitives.typ": point-styles
+#import "drawing/labels.typ": compute-auto-label-position, _direction-angle, _normalize-angle
+#import "drawing/polygons.typ": _drawn-lines-key
+#import "drawing/grids.typ": *
+#import "drawing/annotations.typ": *
 
 // =============================================================================
 // SMART LABEL POSITIONING
@@ -643,7 +652,7 @@
           let dx = p2.at(0) - p1.at(0)
           let dy = p2.at(1) - p1.at(1)
           let denom = calc.sqrt(dx * dx + dy * dy)
-          if denom < 1e-6 { return 999999 }
+          if denom < util.eps-geometric { return 999999 }
           let num = calc.abs(dy * pt.at(0) - dx * pt.at(1) + p2.at(0) * p1.at(1) - p2.at(1) * p1.at(0))
           num / denom
         }
@@ -723,7 +732,7 @@
           let vx = label-coord.at(0) - c.at(0)
           let vy = label-coord.at(1) - c.at(1)
           let vlen = calc.sqrt(vx * vx + vy * vy)
-          if vlen < 1e-6 { break }
+          if vlen < util.eps-geometric { break }
           label-coord = (label-coord.at(0) + 0.15 * vx / vlen, label-coord.at(1) + 0.15 * vy / vlen)
           tries += 1
         }
@@ -1088,7 +1097,7 @@
 /// Draw an ellipse (axis-aligned or rotated)
 /// Usage: draw-ellipse(cetz-draw, (0, 0), 3, 2, angle: 30deg)
 #let draw-ellipse(cetz-draw, center, rx, ry, angle: 0deg, steps: 120, stroke: black, fill: none) = {
-  let rot = if type(angle) == type(0deg) { angle } else { angle * 1deg }
+  let rot = util.to-angle(angle)
   if rot == 0deg {
     cetz-draw.circle(center, radius: (rx, ry), stroke: stroke, fill: fill)
   } else {

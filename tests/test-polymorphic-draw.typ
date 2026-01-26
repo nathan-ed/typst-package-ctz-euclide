@@ -1,4 +1,4 @@
-#import "@preview/ctz-euclide:0.1.0": *
+#import "/src/lib.typ": *
 
 #set page(width: 18cm, height: 26cm, margin: 1cm)
 
