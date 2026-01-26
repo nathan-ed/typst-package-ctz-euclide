@@ -6,6 +6,77 @@
 #import "draw.typ"
 #import "conic.typ"
 
+// =============================================================================
+// SMART LABEL POSITIONING
+// =============================================================================
+
+/// The 8 standard label positions with their angular directions (in degrees)
+/// Angle 0 = right, 90 = above, 180 = left, 270 = below
+#let _label-positions = (
+  (name: "right", angle: 0),
+  (name: "above right", angle: 45),
+  (name: "above", angle: 90),
+  (name: "above left", angle: 135),
+  (name: "left", angle: 180),
+  (name: "below left", angle: 225),
+  (name: "below", angle: 270),
+  (name: "below right", angle: 315),
+)
+
+/// Normalize angle to [0, 360)
+#let _normalize-angle(a) = {
+  let result = calc.rem(a, 360)
+  if result < 0 { result + 360 } else { result }
+}
+
+/// Compute angular distance between two angles (in degrees), result in [0, 180]
+#let _angular-distance(a1, a2) = {
+  let diff = calc.abs(_normalize-angle(a1) - _normalize-angle(a2))
+  if diff > 180 { 360 - diff } else { diff }
+}
+
+/// Compute the optimal label position given a list of "avoid" directions (angles in degrees)
+/// Returns one of the 8 standard position names
+#let compute-auto-label-position(avoid-angles) = {
+  if avoid-angles.len() == 0 {
+    return "above right"  // Default when nothing to avoid
+  }
+
+  // For each candidate position, compute the minimum distance to any avoid angle
+  let best-pos = "above right"
+  let best-score = -1
+
+  for pos in _label-positions {
+    let min-dist = 180  // Start with max possible
+    for avoid in avoid-angles {
+      let dist = _angular-distance(pos.angle, avoid)
+      if dist < min-dist {
+        min-dist = dist
+      }
+    }
+    // Higher min-dist is better (farther from all avoid angles)
+    if min-dist > best-score {
+      best-score = min-dist
+      best-pos = pos.name
+    }
+  }
+
+  best-pos
+}
+
+/// Compute the angle (in degrees) from point p1 to point p2
+#let _direction-angle(p1, p2) = {
+  let dx = p2.at(0) - p1.at(0)
+  let dy = p2.at(1) - p1.at(1)
+  let angle-rad = calc.atan2(dy, dx)
+  // Convert to degrees, atan2 returns angle type in Typst
+  if type(angle-rad) == angle {
+    angle-rad / 1deg
+  } else {
+    angle-rad * 180 / calc.pi
+  }
+}
+
 /// Point style presets
 #let point-styles = (
   cross: (shape: "cross", size: 4pt),
@@ -187,6 +258,10 @@
     let start = (c1.at(0) - extend-before * dx, c1.at(1) - extend-before * dy)
     let end = (c2.at(0) + extend-after * dx, c2.at(1) + extend-after * dy)
 
+    let drawn = ctx.shared-state.at(_drawn-lines-key, default: ())
+    drawn.push((start, end))
+    ctx.shared-state.insert(_drawn-lines-key, drawn)
+
     cetz-draw.line(start, end, ..style)
   })
 }
@@ -286,13 +361,17 @@
 
 /// Global style configuration key
 #let _global-style-key = "ctz-global-style"
+/// Internal key for placed labels (collision avoidance)
+#let _label-placed-key = "ctz-label-placed"
+/// Internal key for drawn line segments (for label avoidance)
+#let _drawn-lines-key = "ctz-drawn-lines"
 
 /// Default global style
 #let default-global-style = (
   point: (
     shape: "cross",
-    size: 0.12,
-    stroke: black + 1.5pt,
+    size: 0.09,
+    stroke: black + 0.9pt,
   ),
   angle: (
     radius: 0.6,
@@ -303,6 +382,7 @@
   label: (
     padding: 0.15,
     single-padding: 0.25,
+    explicit-padding: 0.45,
   ),
 )
 
@@ -364,7 +444,10 @@
 
 /// Label multiple points with automatic positioning based on global style
 /// Usage: label-points-styled(cetz-draw, pt, "A", "B", "C", A: "above", B: "below left")
-/// Position can be a string or a dictionary with pos and offset: A: (pos: "above", offset: (0.1, 0))
+/// Position can be:
+/// - a string: "above", "below", "left", "right", "above left", etc.
+/// - "auto": automatically find best position avoiding connected lines and nearby points
+/// - a dictionary: (pos: "above", offset: (0.1, 0)) or (pos: "auto", avoid: ("B", "C"))
 #let label-points-styled(cetz-draw, pt-func, ..args) = {
   let names = args.pos()
   let positions = args.named()
@@ -373,28 +456,297 @@
     let style = get-style(ctx)
     let default-pos = "above"
     let padding = style.label.padding
+    let placed = ctx.shared-state.at(_label-placed-key, default: ())
+
+    // Get all named lines from context for "auto" positioning
+    let lines = ctx.shared-state.at("ctz-lines", default: (:))
+    // Get all drawn line segments (unnamed) for avoidance
+    let drawn-lines = ctx.shared-state.at(_drawn-lines-key, default: ())
+    // Get all named points from context
+    let points-store = ctx.shared-state.at("ctz-points", default: (:))
+
+    // Pre-resolve all point coordinates for "auto" positioning
+    let resolved-points = (:)
+    for name in names {
+      let coord = pt-func(name)
+      let (_, c) = cetz.coordinate.resolve(ctx, coord)
+      resolved-points.insert(name, c)
+    }
 
     for name in names {
       let spec = positions.at(name, default: default-pos)
-      let (pos, offset) = if type(spec) == str {
-        (spec, (0, 0))
+      let (pos, offset, avoid-extra, label-content) = if type(spec) == str {
+        (spec, (0, 0), (), none)
       } else if type(spec) == dictionary {
-        (spec.at("pos", default: default-pos), spec.at("offset", default: (0, 0)))
+        (
+          spec.at("pos", default: default-pos),
+          spec.at("offset", default: (0, 0)),
+          spec.at("avoid", default: ()),
+          spec.at("label", default: spec.at("text", default: none))
+        )
       } else {
-        (default-pos, (0, 0))
+        (default-pos, (0, 0), (), none)
       }
 
-      let anchor = draw.ctz-pos-to-anchor(pos)
-      let label-padding = if pos in ("above", "below", "left", "right") {
-        style.label.single-padding
-      } else {
-        padding
-      }
-      let coord = pt-func(name)
-      let (_, c) = cetz.coordinate.resolve(ctx, coord)
-      let label-coord = (c.at(0) + offset.at(0), c.at(1) + offset.at(1))
+      let c = resolved-points.at(name)
 
-      cetz-draw.content(label-coord, [$#name$], anchor: anchor, padding: label-padding)
+      let is-auto = pos == "auto"
+      // Handle "auto" positioning
+      if is-auto {
+        let avoid-angles = ()
+
+        // Get all figures from context
+        let circles = ctx.shared-state.at("ctz-circles", default: (:))
+        let conics = ctx.shared-state.at("ctz-conics", default: (:))
+
+        // 1. Find directions to other points being labeled
+        // For very close points, create wider avoidance zones
+        for other-name in names {
+          if other-name != name {
+            let other-c = resolved-points.at(other-name)
+            let dist = util.dist(c, other-c)
+            if dist > 0.001 {
+              let angle = _direction-angle(c, other-c)
+              avoid-angles.push(angle)
+              // For very close points, also avoid nearby angles to prevent overlap
+              if dist < 1.5 {
+                avoid-angles.push(_normalize-angle(angle - 30))
+                avoid-angles.push(_normalize-angle(angle + 30))
+              }
+              if dist < 0.8 {
+                // Even stronger avoidance for very close points
+                avoid-angles.push(_normalize-angle(angle - 60))
+                avoid-angles.push(_normalize-angle(angle + 60))
+              }
+            }
+          }
+        }
+
+        // 2. Find directions along lines (endpoint OR lying on line)
+        for (line-name, line-pts) in lines {
+          let (p1, p2) = line-pts
+          let d1 = util.dist(c, p1)
+          let d2 = util.dist(c, p2)
+          let line-len = util.dist(p1, p2)
+
+          if d1 < 0.1 {
+            // Point is at p1, line goes toward p2
+            let angle = _direction-angle(c, p2)
+            avoid-angles.push(angle)
+          } else if d2 < 0.1 {
+            // Point is at p2, line goes toward p1
+            let angle = _direction-angle(c, p1)
+            avoid-angles.push(angle)
+          } else if line-len > 0.001 {
+            // Check if point lies ON the line (not at endpoints)
+            // Use point-to-line distance
+            let dx = p2.at(0) - p1.at(0)
+            let dy = p2.at(1) - p1.at(1)
+            // Project point onto line
+            let t = ((c.at(0) - p1.at(0)) * dx + (c.at(1) - p1.at(1)) * dy) / (line-len * line-len)
+            // Distance from point to line (perpendicular)
+            let proj-x = p1.at(0) + t * dx
+            let proj-y = p1.at(1) + t * dy
+            let dist-to-line = util.dist(c, (proj-x, proj-y))
+
+            // If point is close to the line, avoid both directions along it
+            if dist-to-line < 0.3 {
+              let line-angle = _direction-angle(p1, p2)
+              avoid-angles.push(line-angle)
+              avoid-angles.push(_normalize-angle(line-angle + 180))
+            }
+          }
+        }
+
+        // 3. Find directions toward circle centers (for points on/near circles)
+        for (circle-name, circ) in circles {
+          let center = circ.center
+          let radius = circ.radius
+          let dist-to-center = util.dist(c, center)
+          // If point is on or near the circle, avoid direction toward center
+          if calc.abs(dist-to-center - radius) < 0.5 {
+            let angle = _direction-angle(c, center)
+            avoid-angles.push(angle)
+          }
+        }
+
+        // 4. Find tangent directions for points on/near parabolas
+        for (conic-name, conic-data) in conics {
+          if conic-data.at("type", default: "") == "parabola" {
+            let pts = conic-data.at("points", default: ())
+            if pts.len() >= 2 {
+              // Find closest point on parabola and its tangent
+              let min-dist = 999999
+              let closest-idx = 0
+              for (i, pt) in pts.enumerate() {
+                let d = util.dist(c, pt)
+                if d < min-dist {
+                  min-dist = d
+                  closest-idx = i
+                }
+              }
+              // If point is near the parabola
+              if min-dist < 0.5 {
+                // Compute tangent direction from neighboring points
+                let prev-idx = calc.max(0, closest-idx - 1)
+                let next-idx = calc.min(pts.len() - 1, closest-idx + 1)
+                if prev-idx != next-idx {
+                  let tangent-angle = _direction-angle(pts.at(prev-idx), pts.at(next-idx))
+                  // Avoid both tangent directions
+                  avoid-angles.push(tangent-angle)
+                  avoid-angles.push(_normalize-angle(tangent-angle + 180))
+                }
+              }
+            }
+          }
+        }
+
+        // 5. Add extra avoid points if specified
+        for avoid-name in avoid-extra {
+          if avoid-name in points-store {
+            let avoid-pt = points-store.at(avoid-name)
+            let (_, avoid-c) = cetz.coordinate.resolve(ctx, avoid-pt)
+            let dist = util.dist(c, avoid-c)
+            if dist > 0.001 {
+              let angle = _direction-angle(c, avoid-c)
+              avoid-angles.push(angle)
+            }
+          }
+        }
+
+        // Compute optimal position
+        pos = compute-auto-label-position(avoid-angles)
+      }
+
+      let label-padding = if is-auto {
+        if pos in ("above", "below", "left", "right") { style.label.single-padding } else { padding }
+      } else {
+        style.label.at("explicit-padding", default: style.label.single-padding)
+      }
+      let base = (c.at(0) + offset.at(0), c.at(1) + offset.at(1))
+      // For explicit positions, offset the label in the chosen direction and center it.
+      let anchor = if pos == "auto" { draw.ctz-pos-to-anchor(pos) } else { "center" }
+      if pos != "auto" {
+        let off = draw.anchor-offset(pos, label-padding)
+        base = (base.at(0) + off.at(0), base.at(1) + off.at(1))
+      }
+
+      // Simple collision avoidance against previous labels and axes
+      let r = label-padding + name.len() * 0.06
+      let label-coord = base
+
+      if pos == "auto" {
+        let best-score = 999999
+
+        // Distance from point to infinite line through p1/p2
+        let dist-to-line = (pt, p1, p2) => {
+          let dx = p2.at(0) - p1.at(0)
+          let dy = p2.at(1) - p1.at(1)
+          let denom = calc.sqrt(dx * dx + dy * dy)
+          if denom < 1e-6 { return 999999 }
+          let num = calc.abs(dy * pt.at(0) - dx * pt.at(1) + p2.at(0) * p1.at(1) - p2.at(1) * p1.at(0))
+          num / denom
+        }
+
+        // Prefer 8 compass directions, then push outward along the best
+        let directions = (
+          (name: "right", vec: (1, 0)),
+          (name: "above right", vec: (0.707, 0.707)),
+          (name: "above", vec: (0, 1)),
+          (name: "above left", vec: (-0.707, 0.707)),
+          (name: "left", vec: (-1, 0)),
+          (name: "below left", vec: (-0.707, -0.707)),
+          (name: "below", vec: (0, -1)),
+          (name: "below right", vec: (0.707, -0.707)),
+        )
+
+        let base-dist = label-padding + 0.15
+        for dir in directions {
+          let cand = (base.at(0) + dir.vec.at(0) * base-dist, base.at(1) + dir.vec.at(1) * base-dist)
+          let score = 0
+
+          // Avoid axes
+          if calc.abs(cand.at(0)) < 0.12 { score += 5 }
+          if calc.abs(cand.at(1)) < 0.12 { score += 5 }
+
+          // Avoid overlaps with placed labels
+          for p in placed {
+            let dx = cand.at(0) - p.at(0)
+            let dy = cand.at(1) - p.at(1)
+            let dist = calc.sqrt(dx * dx + dy * dy)
+            let gap = (p.at(2) + r) - dist
+            if gap > 0 { score += 50 + gap * 10 }
+          }
+
+          // Avoid nearby points (including this point's neighbors)
+          for (pt-name, pt) in points-store {
+            let (_, pc) = cetz.coordinate.resolve(ctx, pt)
+            let dxp = cand.at(0) - pc.at(0)
+            let dyp = cand.at(1) - pc.at(1)
+            let distp = calc.sqrt(dxp * dxp + dyp * dyp)
+            if distp < 0.5 { score += (0.5 - distp) * 60 }
+          }
+
+          // Avoid proximity to named lines
+          for (line-name, line-pts) in lines {
+            let (p1, p2) = line-pts
+            let d = dist-to-line(cand, p1, p2)
+            if d < 0.55 { score += (0.55 - d) * 45 }
+          }
+          // Avoid proximity to drawn (unnamed) lines
+          for seg in drawn-lines {
+            let (p1, p2) = seg
+            let d = dist-to-line(cand, p1, p2)
+            if d < 0.55 { score += (0.55 - d) * 45 }
+          }
+
+          if score < best-score {
+            best-score = score
+            label-coord = cand
+          }
+        }
+
+        // Push outward along chosen direction if still overlapping
+        let tries = 0
+        while tries < 6 {
+          let ok = true
+          for p in placed {
+            let dx = label-coord.at(0) - p.at(0)
+            let dy = label-coord.at(1) - p.at(1)
+            let dist = calc.sqrt(dx * dx + dy * dy)
+            if dist < (p.at(2) + r) {
+              ok = false
+              break
+            }
+          }
+          if ok { break }
+          let vx = label-coord.at(0) - c.at(0)
+          let vy = label-coord.at(1) - c.at(1)
+          let vlen = calc.sqrt(vx * vx + vy * vy)
+          if vlen < 1e-6 { break }
+          label-coord = (label-coord.at(0) + 0.15 * vx / vlen, label-coord.at(1) + 0.15 * vy / vlen)
+          tries += 1
+        }
+      }
+
+      placed.push((label-coord.at(0), label-coord.at(1), r))
+      ctx.shared-state.insert(_label-placed-key, placed)
+
+      let final-label = if label-content == none {
+        [$#name$]
+      } else if type(label-content) == str {
+        // Default to math mode for string labels unless explicitly opted out.
+        let math = if type(spec) == dictionary {
+          spec.at("math", default: true)
+        } else {
+          true
+        }
+        if math { [$#label-content$] } else { label-content }
+      } else {
+        label-content
+      }
+
+      cetz-draw.content(label-coord, final-label, anchor: anchor, padding: label-padding)
     }
   })
 }
@@ -421,6 +773,15 @@
     // Manually close by concatenating first point at end
     if close and coords.len() > 0 {
       coords = coords + (coords.at(0),)
+    }
+
+    // Track drawn segments for label avoidance
+    if coords.len() >= 2 {
+      let drawn = ctx.shared-state.at(_drawn-lines-key, default: ())
+      for i in range(0, coords.len() - 1) {
+        drawn.push((coords.at(i), coords.at(i + 1)))
+      }
+      ctx.shared-state.insert(_drawn-lines-key, drawn)
     }
 
     cetz-draw.line(..coords, stroke: stroke-style, fill: fill-style)
@@ -458,6 +819,11 @@
   cetz-draw.get-ctx(ctx => {
     let (_, c1) = cetz.coordinate.resolve(ctx, pt-func(p1-name))
     let (_, c2) = cetz.coordinate.resolve(ctx, pt-func(p2-name))
+
+    // Track drawn segment for label avoidance
+    let drawn = ctx.shared-state.at(_drawn-lines-key, default: ())
+    drawn.push((c1, c2))
+    ctx.shared-state.insert(_drawn-lines-key, drawn)
 
     // Determine mark style - prefer explicit mark parameter over arrows
     let mark-start = none
@@ -1259,6 +1625,15 @@
   arrow: true,
 ) = {
   let arrow-mark = if arrow { ">" } else { none }
+
+  // Track axes for label avoidance
+  cetz-draw.set-ctx(ctx => {
+    let drawn = ctx.shared-state.at(_drawn-lines-key, default: ())
+    drawn.push(((xmin, 0), (xmax, 0)))
+    drawn.push(((0, ymin), (0, ymax)))
+    ctx.shared-state.insert(_drawn-lines-key, drawn)
+    ctx
+  })
 
   // X axis
   cetz-draw.line((xmin, 0), (xmax, 0), stroke: stroke, mark: (end: arrow-mark))

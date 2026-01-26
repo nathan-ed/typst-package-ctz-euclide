@@ -1095,7 +1095,7 @@ Reflect a point across a line:
     ctz-def-reflect("Pp", "P", "A", "B")
 
     ctz-draw(segment: ("A", "B"), stroke: gray)
-    ctz-draw(path: "P--Pp", stroke: blue + 0.5pt, mark: (end: ">"))
+    ctz-draw(path: "P--Pp", stroke: blue + 0.5pt, mark: (end: ">"), points: false, labels: false)
 
     ctz-draw(points: ("A", "B", "P", "Pp"), labels: (
       P: "below",
@@ -1109,7 +1109,7 @@ Reflect a point across a line:
     ctz-def-points(A: (0, 0), B: (4, 3), P: (3, 0))
     ctz-def-reflect("Pp", "P", "A", "B")
     ctz-draw(segment: ("A", "B"), stroke: gray)
-    ctz-draw(path: "P--Pp", stroke: blue + 0.5pt, mark: (end: ">"))
+    ctz-draw(path: "P--Pp", stroke: blue + 0.5pt, mark: (end: ">"), points: false, labels: false)
     ctz-draw(points: ("A", "B", "P", "Pp"), labels: (
       P: "below",
       Pp: "above left"
@@ -1211,6 +1211,7 @@ Invert points, lines, or circles through a circle:
   #ctz-canvas(length: 0.7cm, {
     import cetz.draw: *
     ctz-init()
+    ctz-set-clip(-5, -4.5, 5, 4)
 
     ctz-def-points(O: (0, 0), A: (-4, -1), B: (4, -1), C: (1.8, 1))
     ctz-def-line("L", "A", "B")
@@ -1230,6 +1231,7 @@ Invert points, lines, or circles through a circle:
   {
     import cetz.draw: *
     ctz-init()
+    ctz-set-clip(-5, -4.5, 5, 4)
     ctz-def-points(O: (0, 0), A: (-4, -1), B: (4, -1), C: (1.8, 1))
     ctz-def-line("L", "A", "B")
     ctz-def-circle("C1", "C", radius: 1.1)
@@ -1266,7 +1268,7 @@ Duplicate any geometric object. For polygons, explicit point names must be provi
     ctz-duplicate("tri2", "tri",
       points: ("A2", "B2", "C2"))
     ctz-draw("tri", stroke: green)
-    ctz-draw-labels("A", "B", "C")
+    ctz-draw(points: ("A", "B", "C"), labels: true)
   })
   ```],
   {
@@ -1280,7 +1282,7 @@ Duplicate any geometric object. For polygons, explicit point names must be provi
     ctz-duplicate("tri2", "tri",
       points: ("A2", "B2", "C2"))
     ctz-draw("tri", stroke: green)
-    ctz-draw-labels("A", "B", "C")
+    ctz-draw(points: ("A", "B", "C"), labels: true)
   },
   length: 0.75cm,
 )
@@ -1517,7 +1519,7 @@ ctz-draw(segment: ("A", "B"), stroke: maroon + 1.5pt)
     ctz-draw(incircle: ("A", "B", "C"), stroke: red)
     ctz-draw(points: ("A", "B", "C"), labels: true)
   },
-  length: 6cm,
+  length: 0.6cm,
 )
 
 == Labels — `ctz-draw-labels`
@@ -1544,6 +1546,47 @@ ctz-draw-labels("A", "B", "C",
   A: (pos: "above", dist: 0.25),
   B: (pos: "right", offset: (0.1, 0)),
   C: (pos: "below left", offset: (-0.05, -0.05)))
+```
+
+== Labels & Points — Unified API (Recommended)
+
+The modern approach combines point drawing and labeling in a single call:
+
+#example(
+  [```typst
+  #ctz-canvas(length: 0.75cm, {
+    import cetz.draw: *
+    ctz-init()
+    ctz-def-points(A: (0, 0), B: (3, 0), C: (1.5, 2))
+    ctz-draw(line: ("A", "B", "C", "A"), stroke: black)
+    ctz-draw(points: ("A", "B", "C"), labels: (
+      A: "below left",
+      B: "below right",
+      C: "above"
+    ))
+  })
+  ```],
+  {
+    import cetz.draw: *
+    ctz-init()
+    ctz-def-points(A: (0, 0), B: (3, 0), C: (1.5, 2))
+    ctz-draw(line: ("A", "B", "C", "A"), stroke: black)
+    ctz-draw(points: ("A", "B", "C"), labels: (
+      A: "below left",
+      B: "below right",
+      C: "above"
+    ))
+  },
+  length: 0.75cm,
+)
+
+This unified API replaces separate `ctz-draw-points()` and `ctz-draw-labels()` calls. The old API remains supported for backward compatibility.
+
+You can also label points that were drawn earlier:
+```typst
+ctz-draw(points: ("A", "B"))  // Draw points without labels
+// ... other drawing commands ...
+ctz-draw(labels: (A: "below", B: "above"))  // Add labels later
 ```
 
 == Segments — `ctz-draw-segment`
@@ -1923,9 +1966,12 @@ Set default styles for points and labels:
     ctz-def-centroid("G", "A", "B", "C")
     ctz-draw(points: ("G"))
 
-    ctz-draw-labels("A", "B", "C", "G",
-      A: "below left", B: "below right",
-      C: "above", G: "right")
+    ctz-draw(points: ("G"), labels: (
+      A: "below left",
+      B: "below right",
+      C: "above",
+      G: "right"
+    ))
   })
   ```],
   {
@@ -2117,6 +2163,147 @@ Draw tangents for conics:
 - `ctz-draw-parabola-tangent(focus, directrix, t, length: auto, stroke: ...)`
 - `ctz-draw-parabola-tangents-from-point(focus, directrix, external, length: auto, stroke: ...)`
 
+== Ellipse Helpers
+
+Descriptive-geometry helpers for ellipse constructions:
+
+- `ctz-ellipse-project-point(center, rx, ry, point, angle: 0deg)` — project a point onto the ellipse along the ray from center
+- `ctz-ellipse-tangents-from-point(center, rx, ry, point, angle: 0deg, length: auto)` — tangent lines from an external point
+- `ctz-ellipse-circle-intersections(center, rx, ry, circle-center, r, angle: 0deg, steps: 360)` — intersections with a circle (numeric)
+
+== Conics — Visual Example
+
+#example(
+  [```typst
+  #ctz-canvas(length: 0.6cm, {
+    import cetz.draw: *
+    ctz-init()
+
+    // Ellipse with labeled points
+    let C = (0, 0)
+    let rx = 3
+    let ry = 2
+    let ang = 20deg
+    let (F1, F2) = conic.ellipse-foci-raw(C, rx, ry, angle: ang)
+    let P0 = conic.ellipse-angpoint-raw(C, rx, ry, angle: ang, theta: 0deg)
+    let P90 = conic.ellipse-angpoint-raw(C, rx, ry, angle: ang, theta: 90deg)
+
+    // Register points for labeling
+    ctz-def-points(C: C, F1: F1, F2: F2, P0: P0, P90: P90)
+
+    ctz-draw(ellipse: (C, rx, ry, ang), stroke: black)
+    ctz-draw(points: ("C", "F1", "F2", "P0", "P90"), labels: (
+      C: (pos: "above left", offset: (-0.1, 0.1)),
+      F1: (pos: "below right", offset: (0.1, -0.1)),
+      F2: (pos: "below right", offset: (0.1, -0.1)),
+      P0: (pos: "right", offset: (0.1, 0)),
+      P90: (pos: "above left", offset: (-0.1, 0.1))
+    ))
+
+    // Parabola (focus + directrix)
+    let F = (-6, -2)
+    let D1 = (-8, -4)
+    let D2 = (-8, 1)
+    ctz-def-points(F: F)
+    ctz-draw(parabola: (F, (D1, D2), 4), stroke: blue)
+    ctz-draw(points: ("F",), labels: (F: (pos: "right", offset: (0.1, 0.1))))
+  })
+  ```],
+  {
+    import cetz.draw: *
+    import "/src/conic.typ" as conic
+    ctz-init()
+    let C = (0, 0)
+    let rx = 3
+    let ry = 2
+    let ang = 20deg
+    let (F1, F2) = conic.ellipse-foci-raw(C, rx, ry, angle: ang)
+    let P0 = conic.ellipse-angpoint-raw(C, rx, ry, angle: ang, theta: 0deg)
+    let P90 = conic.ellipse-angpoint-raw(C, rx, ry, angle: ang, theta: 90deg)
+    ctz-def-points(C: C, F1: F1, F2: F2, P0: P0, P90: P90)
+
+    ctz-draw(ellipse: (C, rx, ry, ang), stroke: black)
+    ctz-draw(points: ("C", "F1", "F2", "P0", "P90"), labels: (
+      C: (pos: "above left", offset: (-0.1, 0.1)),
+      F1: (pos: "below right", offset: (0.1, -0.1)),
+      F2: (pos: "below right", offset: (0.1, -0.1)),
+      P0: (pos: "right", offset: (0.1, 0)),
+      P90: (pos: "above left", offset: (-0.1, 0.1))
+    ))
+
+    let F = (-6, -2)
+    let D1 = (-8, -4)
+    let D2 = (-8, 1)
+    ctz-def-points(F: F)
+    ctz-draw(parabola: (F, (D1, D2), 4), stroke: blue)
+    ctz-draw(points: ("F",), labels: (F: (pos: "right", offset: (0.1, 0.1))))
+  },
+  length: 0.6cm,
+)
+
+#example(
+  [```typst
+  #ctz-canvas(length: 0.6cm, {
+    import cetz.draw: *
+    ctz-init()
+
+    // Parabola from focus + directrix
+    ctz-draw(parabola: ((-3, 0), ((-4, -2), (-4, 2)), 3), stroke: black)
+    ctz-draw(points: ((-3, 0),), labels: (P: "above"))
+
+    // Parabola from focus + p + angle
+    ctz-draw-parabola-focus((2, 0), 0.6, angle: 30deg, extent: 3, stroke: blue)
+
+    // Projectile with vectors
+    ctz-draw(projectile: (origin: (0, -3), velocity: (3, 5), y-floor: -3, vectors: true, vector-count: 5), stroke: red)
+  })
+  ```],
+  {
+    import cetz.draw: *
+    ctz-init()
+    ctz-draw(parabola: ((-3, 0), ((-4, -2), (-4, 2)), 3), stroke: black)
+    ctz-draw-parabola-focus((2, 0), 0.6, angle: 30deg, extent: 3, stroke: blue)
+    ctz-draw(projectile: (origin: (0, -3), velocity: (3, 5), y-floor: -3, vectors: true, vector-count: 5), stroke: red)
+  },
+  length: 0.6cm,
+)
+
+#example(
+  [```typst
+  #ctz-canvas(length: 0.6cm, {
+    import cetz.draw: *
+    ctz-init()
+
+    // Ellipse tangent
+    ctz-draw(ellipse: ((0, 0), 3, 2, 15deg), stroke: black)
+    ctz-draw-ellipse-tangent((0, 0), 3, 2, 45deg, angle: 15deg, stroke: red)
+
+    // Parabola tangents from external point
+    let F = (-4, 0)
+    let D1 = (-6, -3)
+    let D2 = (-6, 3)
+    let P = (-1, 1)
+    ctz-draw(parabola: (F, (D1, D2), 4), stroke: blue)
+    ctz-draw-parabola-tangents-from-point(F, (D1, D2), P, stroke: red)
+    ctz-draw(points: (P,), labels: (P: "above"))
+  })
+  ```],
+  {
+    import cetz.draw: *
+    ctz-init()
+    ctz-draw(ellipse: ((0, 0), 3, 2, 15deg), stroke: black)
+    ctz-draw-ellipse-tangent((0, 0), 3, 2, 45deg, angle: 15deg, stroke: red)
+    let F = (-4, 0)
+    let D1 = (-6, -3)
+    let D2 = (-6, 3)
+    let P = (-1, 1)
+    ctz-draw(parabola: (F, (D1, D2), 4), stroke: blue)
+    ctz-draw-parabola-tangents-from-point(F, (D1, D2), P, stroke: red)
+    ctz-draw(points: (P,))
+  },
+  length: 0.6cm,
+)
+
 == Circle Through Point — `ctz-draw-circle-through`
 
 Draw a circle with given center passing through a point:
@@ -2286,9 +2473,9 @@ Available raw functions:
 - `ctz-duplicate(target, source, points: auto)` — Duplicate any geometric object
 
 == Drawing
-- `ctz-draw(name, ...)` — Draw any object type (polymorphic)
-- `ctz-draw-points(names...)` — Draw points
-- `ctz-draw-labels(names, placements)` — Label points
+- `ctz-draw(name, ...)` or `ctz-draw(points: ..., labels: ...)` — Draw any object type (polymorphic) or draw/label points using unified API
+- `ctz-draw-points(names...)` — Draw points (legacy, prefer unified `ctz-draw()`)
+- `ctz-draw-labels(names, placements)` — Label points (legacy, prefer unified `ctz-draw()`)
 - `ctz-style(point: (...))` — Set styling
 - `ctz-draw-angle(vertex, a, b, ...)` — Mark angle
 - `ctz-draw-mark-right-angle(a, vertex, c, ...)` — Right angle mark
@@ -2896,8 +3083,12 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
     ctz-draw(points: ("A", "B", "C"))
 
     // Labels
-    ctz-draw-labels("A", "B", "C", "G",
-      A: "below left", B: "below right", C: "above", G: "right")
+    ctz-draw(points: ("A", "B", "C", "G"), labels: (
+      A: "left",
+      B: "right",
+      C: "above",
+      G: "below"
+    ))
   },
   code: [```typst
 #ctz-canvas({
@@ -2995,8 +3186,12 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
     ctz-draw(points: ("A", "B", "C", "O", "Mab", "Mbc", "Mca"))
 
     // Labels
-    ctz-draw-labels("A", "B", "C", "O",
-      A: "below left", B: "below right", C: "above", O: "below")
+    ctz-draw(points: ("A", "B", "C", "O", "Mab", "Mbc", "Mca"), labels: (
+      A: "left",
+      B: "right",
+      C: "above",
+      O: "below"
+    ))
   },
   code: [```typst
 #ctz-canvas({
@@ -3085,8 +3280,13 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
     ctz-draw(points: ("A", "B", "C", "O", "H"))
 
     // Labels
-    ctz-draw-labels("A", "B", "C", "O", "H",
-      A: "left", B: "right", C: "above", O: "below", H: "below")
+    ctz-draw(points: ("A", "B", "C", "O", "H"), labels: (
+      A: "left",
+      B: "right",
+      C: "above",
+      O: "below",
+      H: "below left"
+    ))
   },
   code: [```typst
 #ctz-canvas({
@@ -3345,6 +3545,261 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
       ctz-draw(segment: ("P2", "P2i"), stroke: blue + 0.4pt)
     }
   }
+})
+```],
+  length: 0.7cm,
+)
+#pagebreak()
+
+= Advanced Examples
+
+#full-figure(
+  "Ellipse and Circles Tangency",
+  {
+    import cetz.draw: *
+    ctz-init()
+
+    let a = 3
+    let b = 2
+
+    let blue-stroke = (paint: blue, thickness: 0.8pt)
+    let green-stroke = (paint: green, thickness: 0.8pt)
+    let red-stroke = (paint: red, thickness: 0.8pt)
+
+    // Axes
+    ctz-def-points(O: (0, 0), X1: (-5, 0), X2: (5, 0), Y1: (0, -5), Y2: (0, 5))
+    ctz-draw(line: ("X1", "X2"), stroke: (paint: black, thickness: 0.6pt))
+    ctz-draw(line: ("Y1", "Y2"), stroke: (paint: black, thickness: 0.6pt))
+
+    // Circles and ellipse
+    ctz-def-circle("C", "O", radius: a)
+    ctz-def-circle("Cp", "O", radius: b)
+    ctz-draw("C", stroke: blue-stroke)
+    ctz-draw("Cp", stroke: green-stroke)
+    ctz-draw(ellipse: ("O", b, a, 0deg), stroke: red-stroke)
+
+    // Key points H, H'
+    ctz-def-points(H: (a / 2, 0), Hp: (0, -b / 2))
+
+    // Lines through H and H'
+    ctz-def-perp("L1a", "L1b", ("X1", "X2"), "H")
+    ctz-def-para("L2a", "L2b", ("X1", "X2"), "Hp")
+
+    // Intersections with circles
+    ctz-def-lc(("M", "M2"), ("L1a", "L1b"), "C", near: "H")
+    ctz-def-lc(("N", "N2"), ("L2a", "L2b"), "Cp", near: "Hp")
+
+    // Project M, N onto ellipse
+    ctz-def-ellipse-project("Mp", "O", b, a, "M")
+    ctz-def-ellipse-project("Np", "O", b, a, "N")
+
+    // Dashed construction
+    ctz-draw(line: ("H", "M"), stroke: (paint: black, thickness: 0.6pt, dash: "dashed"))
+    ctz-draw(line: ("Hp", "Np"), stroke: (paint: black, thickness: 0.6pt, dash: "dashed"))
+
+    // Radii
+    ctz-draw(line: ("O", "M"), stroke: blue-stroke)
+    ctz-draw(line: ("O", "N"), stroke: green-stroke)
+
+    // Tangents at M and N
+    ctz-def-tangent-at("TgM1", "TgM2", "M", "O")
+    ctz-def-tangent-at("TgN1", "TgN2", "N", "O")
+    ctz-draw(line: ("TgM1", "TgM2"), stroke: blue-stroke)
+    ctz-draw(line: ("TgN1", "TgN2"), stroke: green-stroke)
+
+    // Intersections with axes
+    ctz-def-ll("P", ("TgM1", "TgM2"), ("X1", "X2"))
+    ctz-def-ll("Pp", ("TgN1", "TgN2"), ("Y1", "Y2"))
+
+    // Perpendicular marks
+    ctz-draw-mark-right-angle("TgM1", "M", "O", color: blue)
+    ctz-draw-mark-right-angle("TgN1", "N", "O", color: green)
+
+    // Ellipse tangents from P, P'
+    ctz-def-ellipse-tangent-from("Tp1", "Tp2", "O", b, a, "P", "Mp")
+    ctz-def-ellipse-tangent-from("Tpp1", "Tpp2", "O", b, a, "Pp", "Np")
+    ctz-draw(line: ("Tp1", "Tp2"), stroke: red-stroke, mark: (end: ">", start: ">"))
+    ctz-draw(line: ("Tpp1", "Tpp2"), stroke: red-stroke, mark: (end: ">", start: ">"))
+
+    // Labels
+    ctz-draw(points: ("O", "H", "Hp", "M", "Mp", "N", "Np", "P", "Pp"), labels: (
+      O: (pos: "below left", offset: (-0.15, -0.15)),
+      H: "below", Hp: "left", M: "above right", Mp: "above",
+      N: "left", Np: "below left", P: "right", Pp: "below"
+    ))
+  },
+  code: [```typst
+#ctz-canvas(length: 0.8cm, {
+  import cetz.draw: *
+  ctz-init()
+
+  let a = 3
+  let b = 2
+
+  let blue-stroke = (paint: blue, thickness: 0.8pt)
+  let green-stroke = (paint: green, thickness: 0.8pt)
+  let red-stroke = (paint: red, thickness: 0.8pt)
+
+  // Axes
+  ctz-def-points(O: (0, 0), X1: (-5, 0), X2: (5, 0), Y1: (0, -5), Y2: (0, 5))
+  ctz-draw(line: ("X1", "X2"), stroke: (paint: black, thickness: 0.6pt))
+  ctz-draw(line: ("Y1", "Y2"), stroke: (paint: black, thickness: 0.6pt))
+
+  // Circles and ellipse
+  ctz-def-circle("C", "O", radius: a)
+  ctz-def-circle("Cp", "O", radius: b)
+  ctz-draw("C", stroke: blue-stroke)
+  ctz-draw("Cp", stroke: green-stroke)
+  ctz-draw(ellipse: ("O", b, a, 0deg), stroke: red-stroke)
+
+  // Key points H, H'
+  ctz-def-points(H: (a / 2, 0), Hp: (0, -b / 2))
+
+  // Lines through H and H'
+  ctz-def-perp("L1a", "L1b", ("X1", "X2"), "H")
+  ctz-def-para("L2a", "L2b", ("X1", "X2"), "Hp")
+
+  // Intersections with circles
+  ctz-def-lc(("M", "M2"), ("L1a", "L1b"), "C", near: "H")
+  ctz-def-lc(("N", "N2"), ("L2a", "L2b"), "Cp", near: "Hp")
+
+  // Project M, N onto ellipse
+  ctz-def-ellipse-project("Mp", "O", b, a, "M")
+  ctz-def-ellipse-project("Np", "O", b, a, "N")
+
+  // Dashed construction
+  ctz-draw(line: ("H", "M"), stroke: (paint: black, thickness: 0.6pt, dash: "dashed"))
+  ctz-draw(line: ("Hp", "Np"), stroke: (paint: black, thickness: 0.6pt, dash: "dashed"))
+
+  // Radii
+  ctz-draw(line: ("O", "M"), stroke: blue-stroke)
+  ctz-draw(line: ("O", "N"), stroke: green-stroke)
+
+  // Tangents at M and N
+  ctz-def-tangent-at("TgM1", "TgM2", "M", "O")
+  ctz-def-tangent-at("TgN1", "TgN2", "N", "O")
+  ctz-draw(line: ("TgM1", "TgM2"), stroke: blue-stroke)
+  ctz-draw(line: ("TgN1", "TgN2"), stroke: green-stroke)
+
+  // Intersections with axes
+  ctz-def-ll("P", ("TgM1", "TgM2"), ("X1", "X2"))
+  ctz-def-ll("Pp", ("TgN1", "TgN2"), ("Y1", "Y2"))
+
+  // Perpendicular marks
+  ctz-draw-mark-right-angle("TgM1", "M", "O", color: blue)
+  ctz-draw-mark-right-angle("TgN1", "N", "O", color: green)
+
+  // Ellipse tangents from P, P'
+  ctz-def-ellipse-tangent-from("Tp1", "Tp2", "O", b, a, "P", "Mp")
+  ctz-def-ellipse-tangent-from("Tpp1", "Tpp2", "O", b, a, "Pp", "Np")
+  ctz-draw(line: ("Tp1", "Tp2"), stroke: red-stroke, mark: (end: ">", start: ">"))
+  ctz-draw(line: ("Tpp1", "Tpp2"), stroke: red-stroke, mark: (end: ">", start: ">"))
+
+  // Labels
+  ctz-draw(points: ("O", "H", "Hp", "M", "Mp", "N", "Np", "P", "Pp"), labels: (
+    O: (pos: "below left", offset: (-0.15, -0.15)),
+    H: "below", Hp: "left", M: "above right", Mp: "above",
+    N: "left", Np: "below left", P: "right", Pp: "below"
+  ))
+})
+```],
+  length: 0.8cm,
+)
+
+#full-figure(
+  "Parabola Tangents from Circle",
+  {
+    import cetz.draw: *
+    import "/src/conic.typ" as conic
+    ctz-init()
+
+    let F = (0, 0)
+    let p = 0.35
+    let theta = 25deg
+
+    ctz-set-clip(-4, -4, 12, 12)
+
+    ctz-draw-parabola-focus(F, p, angle: theta, extent: 2.8, stroke: (paint: black, thickness: 1pt))
+
+    let (D1, D2, V) = conic.parabola-directrix-raw(F, p, angle: theta)
+
+    // Circle positioned to be tangent to the parabola
+    let C = (V.at(0) + 10 * (V.at(0) - F.at(0)), V.at(1) + 10 * (V.at(1) - F.at(1)))
+    let r = 1.4
+    ctz-draw(circle-r: (C, r), stroke: (paint: black, thickness: 0.6pt))
+
+    // Points on circle for tangent construction
+    let M1 = (C.at(0) + r * calc.cos(150deg), C.at(1) + r * calc.sin(150deg))
+    let M2 = (C.at(0) + r * calc.cos(210deg), C.at(1) + r * calc.sin(210deg))
+    let M3 = (C.at(0) + r * calc.cos(250deg), C.at(1) + r * calc.sin(250deg))
+
+    // Draw tangents from each M point to parabola
+    for M in (M1, M2, M3) {
+      let tangents = conic.parabola-tangents-from-point-raw(F, D1, D2, M, length: 1.5)
+      for t in tangents {
+        let (p1, p2, tp) = t
+        ctz-draw(line: (p1, p2), stroke: (paint: red, thickness: 0.8pt))
+        ctz-draw(points: (tp,), style: (shape: "dot", size: 2pt, fill: blue))
+      }
+    }
+
+    // Label points
+    ctz-def-points(C: C, M1: M1, M2: M2, M3: M3)
+    ctz-draw(points: ("C", "M1", "M2", "M3"), labels: (
+      C: (pos: "below", offset: (0, -0.25)),
+      M1: (pos: "above left", offset: (-0.2, 0.15)),
+      M2: (pos: "left", offset: (-0.2, 0)),
+      M3: (pos: "below right", offset: (0.2, -0.15)),
+    ))
+  },
+  code: [```typst
+#ctz-canvas(length: 0.7cm, {
+  import cetz.draw: *
+  import "/src/conic.typ" as conic
+  ctz-init()
+
+  let F = (0, 0)
+  let p = 0.35
+  let theta = 25deg
+
+  ctz-set-clip(-4, -4, 12, 12)
+
+  // Draw parabola
+  ctz-draw-parabola-focus(F, p, angle: theta, extent: 2.8,
+    stroke: (paint: black, thickness: 1pt))
+
+  let (D1, D2, V) = conic.parabola-directrix-raw(F, p, angle: theta)
+
+  // Circle positioned to be tangent to parabola
+  let C = (V.at(0) + 10 * (V.at(0) - F.at(0)),
+           V.at(1) + 10 * (V.at(1) - F.at(1)))
+  let r = 1.4
+  ctz-draw(circle-r: (C, r), stroke: (paint: black, thickness: 0.6pt))
+
+  // Three points on circle
+  let M1 = (C.at(0) + r * calc.cos(150deg), C.at(1) + r * calc.sin(150deg))
+  let M2 = (C.at(0) + r * calc.cos(210deg), C.at(1) + r * calc.sin(210deg))
+  let M3 = (C.at(0) + r * calc.cos(250deg), C.at(1) + r * calc.sin(250deg))
+
+  // Draw tangent lines from each M point to parabola
+  for M in (M1, M2, M3) {
+    let tangents = conic.parabola-tangents-from-point-raw(
+      F, D1, D2, M, length: 1.5)
+    for t in tangents {
+      let (p1, p2, tp) = t
+      ctz-draw(line: (p1, p2), stroke: (paint: red, thickness: 0.8pt))
+      ctz-draw(points: (tp,), style: (shape: "dot", size: 2pt, fill: blue))
+    }
+  }
+
+  // Label points
+  ctz-def-points(C: C, M1: M1, M2: M2, M3: M3)
+  ctz-draw(points: ("C", "M1", "M2", "M3"), labels: (
+    C: (pos: "below", offset: (0, -0.25)),
+    M1: (pos: "above left", offset: (-0.2, 0.15)),
+    M2: (pos: "left", offset: (-0.2, 0)),
+    M3: (pos: "below right", offset: (0.2, -0.15)),
+  ))
 })
 ```],
   length: 0.7cm,

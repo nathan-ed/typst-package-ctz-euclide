@@ -88,6 +88,128 @@
   (p1, p2, pt)
 }
 
+/// Project a point onto an ellipse along the ray from the center
+/// Returns the intersection point on the ellipse in the direction of `point`.
+#let ellipse-project-point-raw(center, rx, ry, angle: 0deg, point) = {
+  let dx = point.at(0) - center.at(0)
+  let dy = point.at(1) - center.at(1)
+  if calc.abs(dx) < util.eps and calc.abs(dy) < util.eps {
+    return center
+  }
+  let theta = calc.atan2(dy, dx)
+  ellipse-angpoint-raw(center, rx, ry, angle: angle, theta: theta, from-center: true)
+}
+
+/// Tangents from an external point to the ellipse
+/// Returns ( (p1, p2, tpt), ... )
+#let ellipse-tangents-from-point-raw(center, rx, ry, angle: 0deg, external, length: auto) = {
+  let rel = (external.at(0) - center.at(0), external.at(1) - center.at(1))
+  let local = _rotate2(rel, -angle)
+  let x0 = local.at(0)
+  let y0 = local.at(1)
+  let A = x0 / rx
+  let B = y0 / ry
+  let R = calc.sqrt(A * A + B * B)
+
+  if R < 1 - 1e-6 {
+    return ()
+  }
+
+  let phi = calc.atan2(B, A)
+  let acos-arg = util.clamp(1 / calc.max(R, 1), -1, 1)
+  let alpha = calc.acos(acos-arg)
+
+  let ts = if R < 1 + 1e-6 {
+    (phi,)
+  } else {
+    (phi + alpha, phi - alpha)
+  }
+
+  let results = ()
+  for t in ts {
+    let tpt = ellipse-point-raw(center, rx, ry, angle: angle, t: t)
+    let dir = (tpt.at(0) - external.at(0), tpt.at(1) - external.at(1))
+    let udir = _unit2(dir)
+    let len = if length == auto { calc.max(rx, ry) * 2 } else { length }
+    let p1 = (external.at(0) - udir.at(0) * len, external.at(1) - udir.at(1) * len, external.at(2, default: 0))
+    let p2 = (tpt.at(0) + udir.at(0) * len, tpt.at(1) + udir.at(1) * len, tpt.at(2, default: 0))
+    results.push((p1, p2, tpt))
+  }
+
+  results
+}
+
+/// Tangent from an external point, selecting the contact closest to a target point
+/// Returns (p1, p2, tpt) or none
+#let ellipse-tangent-from-point-towards-raw(center, rx, ry, angle: 0deg, external, target, length: auto) = {
+  let tangents = ellipse-tangents-from-point-raw(center, rx, ry, angle: angle, external, length: length)
+  if tangents.len() == 0 { return none }
+  let best = none
+  let bestd = 1e9
+  for t in tangents {
+    let tp = t.at(2)
+    let d = util.dist(tp, target)
+    if d < bestd {
+      bestd = d
+      best = t
+    }
+  }
+  best
+}
+
+/// Intersections between an ellipse and a circle
+/// Returns a list of points (up to 4)
+#let ellipse-circle-intersections-raw(center, rx, ry, angle: 0deg, circle-center, r, steps: 360) = {
+  let f = t => {
+    let p = ellipse-point-raw(center, rx, ry, angle: angle, t: t)
+    let dx = p.at(0) - circle-center.at(0)
+    let dy = p.at(1) - circle-center.at(1)
+    dx * dx + dy * dy - r * r
+  }
+
+  let pts = ()
+  let prev-t = 0deg
+  let prev-f = f(prev-t)
+  for i in range(1, steps + 1) {
+    let t = i * 360deg / steps
+    let cur-f = f(t)
+    if calc.abs(cur-f) < 1e-6 {
+      pts.push(ellipse-point-raw(center, rx, ry, angle: angle, t: t))
+    } else if prev-f * cur-f < 0 {
+      // Bisection to refine root
+      let a = prev-t
+      let b = t
+      let fa = prev-f
+      let fb = cur-f
+      for _i in range(0, 30) {
+        let m = (a + b) / 2
+        let fm = f(m)
+        if fa * fm <= 0 {
+          b = m
+          fb = fm
+        } else {
+          a = m
+          fa = fm
+        }
+      }
+      pts.push(ellipse-point-raw(center, rx, ry, angle: angle, t: (a + b) / 2))
+    }
+    prev-t = t
+    prev-f = cur-f
+  }
+
+  // Deduplicate close points
+  let out = ()
+  for p in pts {
+    let unique = true
+    for q in out {
+      if util.dist(p, q) < 1e-3 { unique = false }
+    }
+    if unique { out.push(p) }
+  }
+  out
+}
+
 /// Sample points on an ellipse
 /// - center: (x, y, z)
 /// - rx, ry: radii

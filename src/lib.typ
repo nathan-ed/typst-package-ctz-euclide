@@ -2390,6 +2390,200 @@
     drawing.draw-ellipse-tangent(cetz.draw, c, rx-num, ry-num, t, ..opts)
   })
 }
+#let ctz-ellipse-project-point(center, rx, ry, point, angle: 0deg) = {
+  cetz.draw.get-ctx(ctx => {
+    let c = _resolve-point(ctx, center)
+    let p = _resolve-point(ctx, point)
+    let rx-num = if type(rx) == length { rx / 1cm } else { rx }
+    let ry-num = if type(ry) == length { ry / 1cm } else { ry }
+    conic.ellipse-project-point-raw(c, rx-num, ry-num, angle: angle, p)
+  })
+}
+#let ctz-ellipse-tangents-from-point(center, rx, ry, point, angle: 0deg, length: auto) = {
+  cetz.draw.get-ctx(ctx => {
+    let c = _resolve-point(ctx, center)
+    let p = _resolve-point(ctx, point)
+    let rx-num = if type(rx) == length { rx / 1cm } else { rx }
+    let ry-num = if type(ry) == length { ry / 1cm } else { ry }
+    let len-num = if length == auto { auto } else if type(length) == length { length / 1cm } else { length }
+    conic.ellipse-tangents-from-point-raw(c, rx-num, ry-num, angle: angle, p, length: len-num)
+  })
+}
+#let ctz-ellipse-tangent-from-point-towards(center, rx, ry, point, target, angle: 0deg, length: auto) = {
+  cetz.draw.get-ctx(ctx => {
+    let c = _resolve-point(ctx, center)
+    let p = _resolve-point(ctx, point)
+    let t = _resolve-point(ctx, target)
+    let rx-num = if type(rx) == length { rx / 1cm } else { rx }
+    let ry-num = if type(ry) == length { ry / 1cm } else { ry }
+    let len-num = if length == auto { auto } else if type(length) == length { length / 1cm } else { length }
+    conic.ellipse-tangent-from-point-towards-raw(c, rx-num, ry-num, angle: angle, p, t, length: len-num)
+  })
+}
+#let ctz-draw-ellipse-tangent-from-point-towards(center, rx, ry, point, target, angle: 0deg, length: auto, ..opts) = {
+  cetz.draw.get-ctx(ctx => {
+    let c = _resolve-point(ctx, center)
+    let p = _resolve-point(ctx, point)
+    let t = _resolve-point(ctx, target)
+    let rx-num = if type(rx) == length { rx / 1cm } else { rx }
+    let ry-num = if type(ry) == length { ry / 1cm } else { ry }
+    let len-num = if length == auto { auto } else if type(length) == length { length / 1cm } else { length }
+    let res = conic.ellipse-tangent-from-point-towards-raw(c, rx-num, ry-num, angle: angle, p, t, length: len-num)
+    if res != none {
+      let p1 = res.at(0)
+      let p2 = res.at(1)
+      cetz.draw.line(p1, p2, ..opts)
+    }
+  })
+}
+
+/// Define a point by projecting onto an ellipse (ray from center through point)
+#let ctz-def-ellipse-project(name, center, rx, ry, point, angle: 0deg) = {
+  (ctx => {
+    let c = _resolve-point(ctx, center)
+    let p = _resolve-point(ctx, point)
+    let rx-num = if type(rx) == length { rx / 1cm } else { rx }
+    let ry-num = if type(ry) == length { ry / 1cm } else { ry }
+    let result = conic.ellipse-project-point-raw(c, rx-num, ry-num, angle: angle, p)
+    let points = _get-points(ctx)
+    points.insert(name, result)
+    ctx = _set-points(ctx, points)
+    (ctx: ctx)
+  },)
+}
+
+/// Define a tangent line to ellipse from external point, choosing contact closest to target
+#let ctz-def-ellipse-tangent-from(name1, name2, center, rx, ry, point, target, angle: 0deg, length: auto) = {
+  (ctx => {
+    let c = _resolve-point(ctx, center)
+    let p = _resolve-point(ctx, point)
+    let t = _resolve-point(ctx, target)
+    let rx-num = if type(rx) == length { rx / 1cm } else { rx }
+    let ry-num = if type(ry) == length { ry / 1cm } else { ry }
+    let len-num = if length == auto { auto } else if type(length) == length { length / 1cm } else { length }
+    let res = conic.ellipse-tangent-from-point-towards-raw(c, rx-num, ry-num, angle: angle, p, t, length: len-num)
+    if res != none {
+      let points = _get-points(ctx)
+      points.insert(name1, res.at(0))
+      points.insert(name2, res.at(1))
+      ctx = _set-points(ctx, points)
+    }
+    (ctx: ctx)
+  },)
+}
+#let ctz-ellipse-circle-intersections(center, rx, ry, circle-center, r, angle: 0deg, steps: 360) = {
+  cetz.draw.get-ctx(ctx => {
+    let c = _resolve-point(ctx, center)
+    let cc = _resolve-point(ctx, circle-center)
+    let rx-num = if type(rx) == length { rx / 1cm } else { rx }
+    let ry-num = if type(ry) == length { ry / 1cm } else { ry }
+    let r-num = if type(r) == length { r / 1cm } else { r }
+    conic.ellipse-circle-intersections-raw(c, rx-num, ry-num, angle: angle, cc, r: r-num, steps: steps)
+  })
+}
+
+/// High-level construction: ellipse and circles tangency (geometry only)
+/// Returns a dictionary of key points and lines for the construction.
+#let ctz-ellipse-tangency-geom(a, b) = {
+  let unit = v => {
+    let len = calc.sqrt(v.at(0) * v.at(0) + v.at(1) * v.at(1))
+    if len < 1e-9 { (0, 0) } else { (v.at(0) / len, v.at(1) / len) }
+  }
+
+  let O = (0, 0)
+  let H = (a / 2, 0)
+  let Hp = (0, -b / 2)
+
+  let M = (a / 2, calc.sqrt(a * a - (a / 2) * (a / 2)))
+  let N = (-calc.sqrt(b * b - (b / 2) * (b / 2)), -b / 2)
+
+  let Mp = ctz-ellipse-project-point(O, b, a, M)
+  let Np = ctz-ellipse-project-point(O, b, a, N)
+
+  let tM = unit((-M.at(1), M.at(0)))
+  let tN = unit((-N.at(1), N.at(0)))
+
+  let TM1 = (M.at(0) - 4 * tM.at(0), M.at(1) - 4 * tM.at(1))
+  let TM2 = (M.at(0) + 4 * tM.at(0), M.at(1) + 4 * tM.at(1))
+  let TN1 = (N.at(0) - 4 * tN.at(0), N.at(1) - 4 * tN.at(1))
+  let TN2 = (N.at(0) + 4 * tN.at(0), N.at(1) + 4 * tN.at(1))
+
+  // Tangent intersections with axes
+  let t = -M.at(1) / tM.at(1)
+  let P = (M.at(0) + t * tM.at(0), 0)
+  let tp = -N.at(0) / tN.at(0)
+  let Pp = (0, N.at(1) + tp * tN.at(1))
+
+  let tP = ctz-ellipse-tangent-from-point-towards(O, b, a, P, Mp)
+  let tPp = ctz-ellipse-tangent-from-point-towards(O, b, a, Pp, Np)
+
+  (
+    O: O, H: H, Hp: Hp, M: M, N: N, Mp: Mp, Np: Np, P: P, Pp: Pp,
+    TM1: TM1, TM2: TM2, TN1: TN1, TN2: TN2,
+    tP: tP, tPp: tPp,
+  )
+}
+
+/// Draw the full ellipse/circles tangency construction (matches the manual example)
+#let ctz-draw-ellipse-tangency(a, b, labels: true) = {
+  let g = ctz-ellipse-tangency-geom(a, b)
+  let O = g.O
+  let H = g.H
+  let Hp = g.Hp
+  let M = g.M
+  let N = g.N
+  let Mp = g.Mp
+  let Np = g.Np
+  let P = g.P
+  let Pp = g.Pp
+  let TM1 = g.TM1
+  let TM2 = g.TM2
+  let TN1 = g.TN1
+  let TN2 = g.TN2
+
+  let blue-stroke = (paint: blue, thickness: 0.8pt)
+  let green-stroke = (paint: green, thickness: 0.8pt)
+  let red-stroke = (paint: red, thickness: 0.8pt)
+
+  ctz-draw(line: ((-5, 0), (5, 0)), stroke: (paint: black, thickness: 0.6pt))
+  ctz-draw(line: ((0, -5), (0, 5)), stroke: (paint: black, thickness: 0.6pt))
+
+  ctz-draw(circle-r: (O, a), stroke: blue-stroke)
+  ctz-draw(circle-r: (O, b), stroke: green-stroke)
+  ctz-draw(ellipse: (O, b, a, 0deg), stroke: red-stroke)
+
+  ctz-draw(line: (H, M), stroke: (paint: black, thickness: 0.6pt, dash: "dashed"))
+  ctz-draw(line: (Hp, Np), stroke: (paint: black, thickness: 0.6pt, dash: "dashed"))
+  ctz-draw(line: (O, M), stroke: blue-stroke)
+  ctz-draw(line: (O, N), stroke: green-stroke)
+
+  ctz-draw(line: (TM1, TM2), stroke: blue-stroke)
+  ctz-draw(line: (TN1, TN2), stroke: green-stroke)
+
+  ctz-def-points(O: O, H: H, Hp: Hp, M: M, N: N, TM1: TM1, TN1: TN1)
+  ctz-draw-mark-right-angle("TM1", "M", "O", color: blue)
+  ctz-draw-mark-right-angle("TN1", "N", "O", color: green)
+
+  if g.tP != none {
+    let A1 = g.tP.at(0)
+    let A2 = g.tP.at(1)
+    ctz-draw(line: (A1, A2), stroke: red-stroke, mark: (end: ">", start: ">"))
+  }
+  if g.tPp != none {
+    let B1 = g.tPp.at(0)
+    let B2 = g.tPp.at(1)
+    ctz-draw(line: (B1, B2), stroke: red-stroke, mark: (end: ">", start: ">"))
+  }
+
+  if labels {
+    ctz-def-points(Mp: Mp, Np: Np, P: P, Pp: Pp)
+    ctz-draw(points: ("O", "H", "Hp", "M", "Mp", "N", "Np", "P", "Pp"), labels: (
+      O: (pos: "below left", offset: (-0.15, -0.15)),
+      H: "below", Hp: "left", M: "above right", Mp: "above",
+      N: "left", Np: "below left", P: "right", Pp: "below"
+    ))
+  }
+}
 #let ctz-draw-parabola-tangent(focus, directrix, t, ..opts) = {
   cetz.draw.get-ctx(ctx => {
     let f = _resolve-point(ctx, focus)
@@ -2460,4 +2654,5 @@
 #let ctz-dist = _dist
 #let ctz-angle-to = _angle-to
 #let ctz-project-point-on-line = _project-point-on-line
+
 #let ctz-rotate-point = _rotate-point
