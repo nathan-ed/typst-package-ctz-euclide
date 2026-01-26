@@ -13,8 +13,7 @@
 
   // Draw the parabola
   ctz-draw("p", stroke: (paint: black, thickness: 1.2pt))
-  ctz-draw(points: ("F",))
-  ctz-draw-labels("F", F: "right")
+  ctz-draw(points: ("F",), labels: (F: "right"))
 
   // Circle: center C = V + 2*(V-F), tangent to parabola
   // For parabola with focus at origin and p=2, vertex V is at (-2, 0)
@@ -28,9 +27,8 @@
   ctz-def-point-on-circle("M2", "C", 0.8, 210)
   ctz-def-point-on-circle("M3", "C", 0.8, 300)
 
-  ctz-draw(points: ("M0", "M1", "M2", "M3"))
-  ctz-draw-labels("M0", "M1", "M2", "M3",
-    M0: "right", M1: "above", M2: "left", M3: "below")
+  ctz-draw(points: ("M0", "M1", "M2", "M3"),
+    labels: (M0: "right", M1: "above", M2: "left", M3: "below"))
 
   // Draw tangent lines from each M point to the parabola
   ctz-draw-parabola-tangents-from-point("F", ("A", "B"), "M0",
