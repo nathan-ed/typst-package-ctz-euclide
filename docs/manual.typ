@@ -1,4 +1,4 @@
-#import "@preview/ctz-euclide:0.1.0": *
+#import "/src/lib.typ": *
 
 // ==============================================================================
 // DOCUMENT SETUP
@@ -143,7 +143,7 @@
 Import the package in your Typst document:
 
 ```typst
-#import "@preview/ctz-euclide:0.1.0": *
+#import "/src/lib.typ": *
 ```
 
 All figures use the `ctz-canvas` function (re-exported from CeTZ):
@@ -1348,7 +1348,7 @@ The `ctz-draw()` function provides a unified interface for drawing both *named o
 
 === Drawing Named Objects
 
-Use `ctz-draw()` to draw any object type without remembering type-specific commands. It automatically detects whether the object is a point, line, circle, or polygon.
+Use `ctz-draw()` to draw any object type without remembering type-specific commands. It automatically detects whether the object is a point, line, circle, polygon, or conic (ellipse/parabola/projectile).
 
 #example(
   [```typst
@@ -1450,6 +1450,21 @@ ctz-draw(circumcircle: ("A", "B", "C"), stroke: red)
 
 // Incircle of triangle
 ctz-draw(incircle: ("A", "B", "C"), stroke: teal)
+```
+
+==== Conics (Ellipses, Parabolas, Projectiles)
+
+Draw conics without naming them:
+
+```typst
+// Ellipse by center, radii, and rotation angle
+ctz-draw(ellipse: ((0, 0), 3, 2, 20deg), stroke: black)
+
+// Parabola by focus + directrix (line or two points)
+ctz-draw(parabola: ((0, 0), ((-2, -3), (-2, 3)), 4), stroke: black)
+
+// Projectile by origin + velocity (optional gravity, vectors, etc.)
+ctz-draw(projectile: (origin: (0, 0), velocity: (4, 6), y-floor: 0, vectors: true), stroke: blue)
 ```
 
 ==== Arcs and Semicircles
@@ -2057,6 +2072,50 @@ Draw the inscribed circle of a triangle:
 ```typst
 ctz-draw(incircle: ("A", "B", "C"), stroke: green + 1pt)
 ```
+
+#pagebreak()
+
+// ==============================================================================
+// CONICS
+// ==============================================================================
+
+= Conics
+
+== Ellipse — `ctz-def-ellipse` / `ctz-draw-ellipse`
+
+Define and draw ellipses:
+
+- `ctz-def-ellipse(name, center, rx, ry, angle: 0deg)`
+- `ctz-draw-ellipse(center, rx, ry, angle: 0deg, stroke: ..., fill: ...)`
+- `ctz-draw(name, ...)` for named ellipses
+
+== Parabola (Focus + Directrix) — `ctz-def-parabola` / `ctz-draw-parabola`
+
+Define and draw parabolas from focus and directrix:
+
+- `ctz-def-parabola(name, focus, directrix, extent: auto, steps: 120)`
+- `ctz-draw-parabola(focus, directrix, extent: auto, steps: 120, stroke: ...)`
+
+== Parabola (Focus + p + Angle) — `ctz-draw-parabola-focus`
+
+Draw a parabola using the focus, parameter `p` (vertex-to-focus distance), and opening angle:
+
+- `ctz-draw-parabola-focus(focus, p, angle: 0deg, extent: auto, steps: 120, stroke: ...)`
+
+== Projectile Trajectory — `ctz-def-projectile` / `ctz-draw-projectile`
+
+Define and draw a projectile (parabolic) trajectory:
+
+- `ctz-def-projectile(name, origin, velocity, gravity: 9.81, t-max: auto, steps: 80, y-floor: none, vectors: false, vector-count: 5, vector-scale: 0.12)`
+- `ctz-draw-projectile(origin, velocity, gravity: 9.81, t-max: auto, steps: 80, y-floor: none, vectors: false, vector-count: 5, vector-scale: 0.12)`
+
+== Conic Tangents
+
+Draw tangents for conics:
+
+- `ctz-draw-ellipse-tangent(center, rx, ry, t, angle: 0deg, length: auto, stroke: ...)`
+- `ctz-draw-parabola-tangent(focus, directrix, t, length: auto, stroke: ...)`
+- `ctz-draw-parabola-tangents-from-point(focus, directrix, external, length: auto, stroke: ...)`
 
 == Circle Through Point — `ctz-draw-circle-through`
 

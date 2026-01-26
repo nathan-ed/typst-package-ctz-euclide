@@ -14,6 +14,7 @@
 #import "draw.typ"
 #import "drawing.typ"
 #import "circle.typ"
+#import "conic.typ"
 
 /// Package version
 #let _version = (0, 1, 0)
@@ -29,6 +30,8 @@
 #let _circles-key = "ctz-circles"
 /// Internal key for storing named polygons in shared-state
 #let _polygons-key = "ctz-polygons"
+/// Internal key for storing named conics in shared-state
+#let _conics-key = "ctz-conics"
 
 /// Get all stored points from context
 #let _get-points(ctx) = {
@@ -74,6 +77,17 @@
   ctx
 }
 
+/// Get all stored conics from context
+#let _get-conics(ctx) = {
+  ctx.shared-state.at(_conics-key, default: (:))
+}
+
+/// Store conics in context
+#let _set-conics(ctx, conics) = {
+  ctx.shared-state.insert(_conics-key, conics)
+  ctx
+}
+
 /// Get the object type for a given name
 /// Returns "point", "line", "circle", "polygon", or none
 #let _get-object-type(ctx, name) = {
@@ -90,6 +104,9 @@
   }
   if name in _get-polygons(ctx) {
     found-types.push("polygon")
+  }
+  if name in _get-conics(ctx) {
+    found-types.push("conic")
   }
 
   if found-types.len() == 0 {
@@ -137,6 +154,9 @@
     if _polygons-key not in ctx.shared-state {
       ctx.shared-state.insert(_polygons-key, (:))
     }
+    if _conics-key not in ctx.shared-state {
+      ctx.shared-state.insert(_conics-key, (:))
+    }
     // Register coordinate resolver if not already done
     if type(ctx.resolve-coordinate) != array {
       ctx.resolve-coordinate = ()
@@ -177,6 +197,20 @@
     return _pt
   }
   panic("Cannot resolve point: " + repr(p))
+}
+
+/// Resolve a vector (array of numbers or pair of points)
+#let _resolve-vector(ctx, vector) = {
+  if type(vector) == array and vector.len() == 2 and vector.all(v => type(v) in (int, float, length)) {
+    let resolve-num(v) = if type(v) == length { v / 1cm } else { v }
+    return (resolve-num(vector.at(0)), resolve-num(vector.at(1)), 0)
+  }
+  if type(vector) == array and vector.len() == 2 {
+    let v1 = _resolve-point(ctx, vector.at(0))
+    let v2 = _resolve-point(ctx, vector.at(1))
+    return (v2.at(0) - v1.at(0), v2.at(1) - v1.at(1), 0)
+  }
+  panic("Cannot resolve vector: " + repr(vector))
 }
 
 /// Helper to convert point name to ctz: coordinate (or pass through raw coordinates)
@@ -359,6 +393,71 @@
     let circles = _get-circles(ctx)
     circles.insert(name, (center: c, radius: r))
     ctx = _set-circles(ctx, circles)
+    (ctx: ctx)
+  },)
+}
+
+/// Define a named ellipse by center and radii
+#let _def-ellipse(name, center, rx, ry, angle: 0deg) = {
+  (ctx => {
+    let c = _resolve-point(ctx, center)
+    let rx-num = if type(rx) == length { rx / 1cm } else { rx }
+    let ry-num = if type(ry) == length { ry / 1cm } else { ry }
+    let ang = if type(angle) == type(0deg) { angle } else { angle * 1deg }
+
+    let conics = _get-conics(ctx)
+    conics.insert(name, (type: "ellipse", center: c, rx: rx-num, ry: ry-num, angle: ang))
+    ctx = _set-conics(ctx, conics)
+    (ctx: ctx)
+  },)
+}
+
+/// Define a named parabola by focus and directrix
+#let _def-parabola(name, focus, directrix, extent: auto, steps: 120) = {
+  (ctx => {
+    let f = _resolve-point(ctx, focus)
+    let (a, b) = _parse-line(ctx, directrix)
+    let ext = if type(extent) == length { extent / 1cm } else { extent }
+
+    let conics = _get-conics(ctx)
+    conics.insert(name, (type: "parabola", focus: f, directrix: (a, b), extent: ext, steps: steps))
+    ctx = _set-conics(ctx, conics)
+    (ctx: ctx)
+  },)
+}
+
+/// Define a named projectile trajectory (parabola)
+#let _def-projectile(
+  name,
+  origin,
+  velocity,
+  gravity: 9.81,
+  t-max: auto,
+  steps: 80,
+  y-floor: none,
+  vectors: false,
+  vector-count: 5,
+  vector-scale: 0.12,
+) = {
+  (ctx => {
+    let o = _resolve-point(ctx, origin)
+    let v = _resolve-vector(ctx, velocity)
+    let y-floor-num = if y-floor != none and type(y-floor) == length { y-floor / 1cm } else { y-floor }
+
+    let conics = _get-conics(ctx)
+    conics.insert(name, (
+      type: "projectile",
+      origin: o,
+      velocity: v,
+      gravity: gravity,
+      t-max: t-max,
+      steps: steps,
+      y-floor: y-floor-num,
+      vectors: vectors,
+      vector-count: vector-count,
+      vector-scale: vector-scale,
+    ))
+    ctx = _set-conics(ctx, conics)
     (ctx: ctx)
   },)
 }
@@ -1542,6 +1641,47 @@
   })
 }
 
+/// Draw a named conic (ellipse, parabola, or projectile)
+#let _draw-conic(name, ..opts) = {
+  cetz.draw.get-ctx(ctx => {
+    let conics = _get-conics(ctx)
+    if name in conics {
+      let c = conics.at(name)
+      if c.type == "ellipse" {
+        drawing.draw-ellipse(cetz.draw, c.center, c.rx, c.ry, angle: c.angle, ..opts)
+      } else if c.type == "parabola" {
+        drawing.draw-parabola-focus-directrix(
+          cetz.draw,
+          c.focus,
+          c.directrix.at(0),
+          c.directrix.at(1),
+          extent: c.extent,
+          steps: c.steps,
+          ..opts
+        )
+      } else if c.type == "projectile" {
+        drawing.draw-projectile(
+          cetz.draw,
+          c.origin,
+          c.velocity,
+          gravity: c.gravity,
+          t-max: c.t-max,
+          steps: c.steps,
+          y-floor: c.y-floor,
+          vectors: c.vectors,
+          vector-count: c.vector-count,
+          vector-scale: c.vector-scale,
+          ..opts
+        )
+      } else {
+        panic("Unknown conic type '" + c.type + "' for '" + name + "'")
+      }
+    } else {
+      panic("Conic '" + name + "' not found")
+    }
+  })
+}
+
 /// Draw circumcircle
 #let _circumcircle(a, b, c, ..opts) = drawing.draw-circumcircle(cetz.draw, _pt, a, b, c, ..opts)
 
@@ -1567,6 +1707,9 @@
 ///   ctz-draw(circle-diameter: ("A", "B"), stroke: purple)
 ///   ctz-draw(circumcircle: ("A", "B", "C"), stroke: blue)
 ///   ctz-draw(incircle: ("A", "B", "C"), stroke: red)
+///   ctz-draw(ellipse: ("O", 3, 2, 30deg), stroke: green)
+///   ctz-draw(parabola: ("F", ("A", "B"), 4), stroke: orange)
+///   ctz-draw(projectile: (origin: (0, 0), velocity: (3, 6), y-floor: 0, vectors: true), stroke: blue)
 ///   ctz-draw(arc: (center: "O", start: "A", end: "B"), stroke: black)
 ///   ctz-draw(arc-r: ((0, 0), 2, 0, 90), stroke: black)
 ///   ctz-draw(semicircle: ("A", "B"), stroke: blue)
@@ -1582,9 +1725,11 @@
       let obj-type = _get-object-type(ctx, name)
 
       if obj-type == none {
-        panic("Object '" + name + "' not found. No point, line, circle, or polygon with this name exists.")
+        panic("Object '" + name + "' not found. No point, line, circle, polygon, or conic with this name exists.")
       } else if obj-type == "circle" {
         _draw-circle(name, ..named)
+      } else if obj-type == "conic" {
+        _draw-conic(name, ..named)
       } else if obj-type == "line" {
         _draw-line(name, ..named)
       } else if obj-type == "polygon" {
@@ -1684,6 +1829,139 @@
       }
     }
     _circle-r(spec.at(0), spec.at(1), ..other-opts)
+  }
+  else if "ellipse" in named {
+    let spec = named.at("ellipse")
+    let other-opts = (:)
+    for (k, v) in named {
+      if k != "ellipse" {
+        other-opts.insert(k, v)
+      }
+    }
+    cetz.draw.get-ctx(ctx => {
+      let center = none
+      let rx = none
+      let ry = none
+      let angle = 0deg
+      let steps = 120
+
+      if type(spec) == dictionary {
+        center = spec.center
+        if "radius" in spec and type(spec.radius) == array and spec.radius.len() >= 2 {
+          rx = spec.radius.at(0)
+          ry = spec.radius.at(1)
+        } else {
+          rx = spec.rx
+          ry = spec.ry
+        }
+        angle = spec.at("angle", default: 0deg)
+        steps = spec.at("steps", default: 120)
+      } else if type(spec) == array and spec.len() >= 3 {
+        center = spec.at(0)
+        rx = spec.at(1)
+        ry = spec.at(2)
+        angle = spec.at(3, default: 0deg)
+        steps = spec.at(4, default: 120)
+      } else {
+        panic("ctz-draw(ellipse: ...) expects (center, rx, ry, angle?) or a dictionary")
+      }
+
+      let c = _resolve-point(ctx, center)
+      let rx-num = if type(rx) == length { rx / 1cm } else { rx }
+      let ry-num = if type(ry) == length { ry / 1cm } else { ry }
+      let ang = if type(angle) == type(0deg) { angle } else { angle * 1deg }
+      drawing.draw-ellipse(cetz.draw, c, rx-num, ry-num, angle: ang, steps: steps, ..other-opts)
+    })
+  }
+  else if "parabola" in named {
+    let spec = named.at("parabola")
+    let other-opts = (:)
+    for (k, v) in named {
+      if k != "parabola" {
+        other-opts.insert(k, v)
+      }
+    }
+    cetz.draw.get-ctx(ctx => {
+      let focus = none
+      let directrix = none
+      let extent = auto
+      let steps = 120
+
+      if type(spec) == dictionary {
+        focus = spec.focus
+        directrix = spec.directrix
+        extent = spec.at("extent", default: auto)
+        steps = spec.at("steps", default: 120)
+      } else if type(spec) == array and spec.len() >= 2 {
+        focus = spec.at(0)
+        directrix = spec.at(1)
+        extent = spec.at(2, default: auto)
+        steps = spec.at(3, default: 120)
+      } else {
+        panic("ctz-draw(parabola: ...) expects (focus, directrix, extent?) or a dictionary")
+      }
+
+      let f = _resolve-point(ctx, focus)
+      let (a, b) = _parse-line(ctx, directrix)
+      let ext = if type(extent) == length { extent / 1cm } else { extent }
+      drawing.draw-parabola-focus-directrix(cetz.draw, f, a, b, extent: ext, steps: steps, ..other-opts)
+    })
+  }
+  else if "projectile" in named {
+    let spec = named.at("projectile")
+    let other-opts = (:)
+    for (k, v) in named {
+      if k != "projectile" {
+        other-opts.insert(k, v)
+      }
+    }
+    cetz.draw.get-ctx(ctx => {
+      let origin = none
+      let velocity = none
+      let gravity = 9.81
+      let t-max = auto
+      let steps = 80
+      let y-floor = none
+      let vectors = false
+      let vector-count = 5
+      let vector-scale = 0.12
+
+      if type(spec) == dictionary {
+        origin = spec.origin
+        velocity = spec.velocity
+        gravity = spec.at("gravity", default: 9.81)
+        t-max = spec.at("t-max", default: auto)
+        steps = spec.at("steps", default: 80)
+        y-floor = spec.at("y-floor", default: none)
+        vectors = spec.at("vectors", default: false)
+        vector-count = spec.at("vector-count", default: 5)
+        vector-scale = spec.at("vector-scale", default: 0.12)
+      } else if type(spec) == array and spec.len() >= 2 {
+        origin = spec.at(0)
+        velocity = spec.at(1)
+        t-max = spec.at(2, default: auto)
+        steps = spec.at(3, default: 80)
+      } else {
+        panic("ctz-draw(projectile: ...) expects (origin, velocity, t-max?) or a dictionary")
+      }
+
+      let o = _resolve-point(ctx, origin)
+      let v = _resolve-vector(ctx, velocity)
+      let y-floor-num = if y-floor != none and type(y-floor) == length { y-floor / 1cm } else { y-floor }
+      drawing.draw-projectile(
+        cetz.draw,
+        o,
+        v,
+        gravity: gravity,
+        t-max: t-max,
+        steps: steps,
+        y-floor: y-floor-num,
+        vectors: vectors,
+        vector-count: vector-count,
+        vector-scale: vector-scale,
+        ..other-opts
+      )
+    })
   }
   else if "circle-diameter" in named {
     let pts = named.at("circle-diameter")
@@ -2001,6 +2279,9 @@
 #let ctz-pts(..points) = ctz-def-points(..points)
 #let ctz-def-line(name, a, b) = _def-line-name(name, a, b)
 #let ctz-def-circle(name, center, radius: auto, through: none) = _def-circle(name, center, radius: radius, through: through)
+#let ctz-def-ellipse(name, center, rx, ry, angle: 0deg) = _def-ellipse(name, center, rx, ry, angle: angle)
+#let ctz-def-parabola(name, focus, directrix, extent: auto, steps: 120) = _def-parabola(name, focus, directrix, extent: extent, steps: steps)
+#let ctz-def-projectile(name, origin, velocity, gravity: 9.81, t-max: auto, steps: 80, y-floor: none, vectors: false, vector-count: 5, vector-scale: 0.12) = _def-projectile(name, origin, velocity, gravity: gravity, t-max: t-max, steps: steps, y-floor: y-floor, vectors: vectors, vector-count: vector-count, vector-scale: vector-scale)
 #let ctz-def-polygon(name, ..points) = _def-polygon(name, ..points)
 
 // Intersections
@@ -2079,6 +2360,59 @@
 #let ctz-draw-circle-through(center, through, ..opts) = _circle-through(center, through, ..opts)
 #let ctz-draw-circle-diameter(a, b, ..opts) = _circle-diameter(a, b, ..opts)
 #let ctz-draw-circle(name, ..opts) = _draw-circle(name, ..opts)
+#let ctz-draw-ellipse(center, rx, ry, ..opts) = {
+  cetz.draw.get-ctx(ctx => {
+    let c = _resolve-point(ctx, center)
+    let rx-num = if type(rx) == length { rx / 1cm } else { rx }
+    let ry-num = if type(ry) == length { ry / 1cm } else { ry }
+    drawing.draw-ellipse(cetz.draw, c, rx-num, ry-num, ..opts)
+  })
+}
+#let ctz-draw-parabola(focus, directrix, ..opts) = {
+  cetz.draw.get-ctx(ctx => {
+    let f = _resolve-point(ctx, focus)
+    let (a, b) = _parse-line(ctx, directrix)
+    drawing.draw-parabola-focus-directrix(cetz.draw, f, a, b, ..opts)
+  })
+}
+#let ctz-draw-parabola-focus(focus, p, ..opts) = {
+  cetz.draw.get-ctx(ctx => {
+    let f = _resolve-point(ctx, focus)
+    let p-num = if type(p) == length { p / 1cm } else { p }
+    drawing.draw-parabola-focus(cetz.draw, f, p-num, ..opts)
+  })
+}
+#let ctz-draw-ellipse-tangent(center, rx, ry, t, ..opts) = {
+  cetz.draw.get-ctx(ctx => {
+    let c = _resolve-point(ctx, center)
+    let rx-num = if type(rx) == length { rx / 1cm } else { rx }
+    let ry-num = if type(ry) == length { ry / 1cm } else { ry }
+    drawing.draw-ellipse-tangent(cetz.draw, c, rx-num, ry-num, t, ..opts)
+  })
+}
+#let ctz-draw-parabola-tangent(focus, directrix, t, ..opts) = {
+  cetz.draw.get-ctx(ctx => {
+    let f = _resolve-point(ctx, focus)
+    let (a, b) = _parse-line(ctx, directrix)
+    drawing.draw-parabola-tangent(cetz.draw, f, a, b, t, ..opts)
+  })
+}
+#let ctz-draw-parabola-tangents-from-point(focus, directrix, external, ..opts) = {
+  cetz.draw.get-ctx(ctx => {
+    let f = _resolve-point(ctx, focus)
+    let (a, b) = _parse-line(ctx, directrix)
+    let p = _resolve-point(ctx, external)
+    drawing.draw-parabola-tangents-from-point(cetz.draw, f, a, b, p, ..opts)
+  })
+}
+#let ctz-draw-projectile(origin, velocity, ..opts) = {
+  cetz.draw.get-ctx(ctx => {
+    let o = _resolve-point(ctx, origin)
+    let v = _resolve-vector(ctx, velocity)
+    drawing.draw-projectile(cetz.draw, o, v, ..opts)
+  })
+}
+
 #let ctz-draw-circumcircle(a, b, c, ..opts) = _circumcircle(a, b, c, ..opts)
 #let ctz-draw-incircle(a, b, c, ..opts) = _incircle(a, b, c, ..opts)
 #let ctz-draw-semicircle(a, b, ..opts) = _semicircle(a, b, ..opts)

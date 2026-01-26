@@ -4,6 +4,7 @@
 #import "@preview/cetz:0.4.2" as cetz
 #import "util.typ"
 #import "draw.typ"
+#import "conic.typ"
 
 /// Point style presets
 #let point-styles = (
@@ -716,6 +717,132 @@
 /// Usage: draw-circle-r(cetz-draw, "O", 3, stroke: black, fill: none)
 #let draw-circle-r(cetz-draw, center, radius, stroke: black, fill: none) = {
   cetz-draw.circle(center, radius: radius, stroke: stroke, fill: fill)
+}
+
+/// Draw an ellipse (axis-aligned or rotated)
+/// Usage: draw-ellipse(cetz-draw, (0, 0), 3, 2, angle: 30deg)
+#let draw-ellipse(cetz-draw, center, rx, ry, angle: 0deg, steps: 120, stroke: black, fill: none) = {
+  let rot = if type(angle) == type(0deg) { angle } else { angle * 1deg }
+  if rot == 0deg {
+    cetz-draw.circle(center, radius: (rx, ry), stroke: stroke, fill: fill)
+  } else {
+    let pts = conic.ellipse-points-raw(center, rx, ry, angle: rot, steps: steps)
+    cetz-draw.line(..pts, stroke: stroke, fill: fill)
+  }
+}
+
+/// Draw a parabola defined by focus and directrix
+/// Usage: draw-parabola(cetz-draw, focus, dir-a, dir-b, extent: 4, stroke: black)
+#let draw-parabola-focus-directrix(
+  cetz-draw,
+  focus,
+  directrix-a,
+  directrix-b,
+  extent: auto,
+  steps: 120,
+  stroke: black,
+) = {
+  let pts = conic.parabola-points-focus-directrix-raw(focus, directrix-a, directrix-b, extent: extent, steps: steps)
+  if pts.len() > 1 {
+    cetz-draw.line(..pts, stroke: stroke)
+  }
+}
+
+/// Draw a parabola from focus, p, angle
+#let draw-parabola-focus(
+  cetz-draw,
+  focus,
+  p,
+  angle: 0deg,
+  extent: auto,
+  steps: 120,
+  stroke: black,
+) = {
+  let pts = conic.parabola-points-from-focus-raw(focus, p, angle: angle, extent: extent, steps: steps)
+  if pts.len() > 1 {
+    cetz-draw.line(..pts, stroke: stroke)
+  }
+}
+
+/// Draw a tangent line on an ellipse at parameter t
+#let draw-ellipse-tangent(
+  cetz-draw,
+  center,
+  rx,
+  ry,
+  t,
+  angle: 0deg,
+  length: auto,
+  stroke: black,
+) = {
+  let (p1, p2, _pt) = conic.ellipse-tangent-raw(center, rx, ry, angle: angle, t: t, length: length)
+  cetz-draw.line(p1, p2, stroke: stroke)
+}
+
+/// Draw a tangent line on a parabola at parameter t
+#let draw-parabola-tangent(
+  cetz-draw,
+  focus,
+  directrix-a,
+  directrix-b,
+  t,
+  length: auto,
+  stroke: black,
+) = {
+  let res = conic.parabola-tangent-raw(focus, directrix-a, directrix-b, t, length: length)
+  if res != none {
+    let (p1, p2, _pt) = res
+    cetz-draw.line(p1, p2, stroke: stroke)
+  }
+}
+
+/// Draw tangents from an external point to a parabola
+#let draw-parabola-tangents-from-point(
+  cetz-draw,
+  focus,
+  directrix-a,
+  directrix-b,
+  external,
+  length: auto,
+  stroke: black,
+) = {
+  let res = conic.parabola-tangents-from-point-raw(focus, directrix-a, directrix-b, external, length: length)
+  for item in res {
+    let (p1, p2, _pt) = item
+    cetz-draw.line(p1, p2, stroke: stroke)
+  }
+}
+
+/// Draw a projectile trajectory with optional velocity vectors
+/// Usage: draw-projectile(cetz-draw, origin, velocity, gravity: 9.81, vectors: true)
+#let draw-projectile(
+  cetz-draw,
+  origin,
+  velocity,
+  gravity: 9.81,
+  t-max: auto,
+  steps: 80,
+  y-floor: none,
+  stroke: black,
+  vectors: false,
+  vector-count: 5,
+  vector-scale: 0.12,
+  vector-stroke: gray + 0.8pt,
+) = {
+  let (pts, t-end) = conic.projectile-points-raw(origin, velocity, gravity, t-max, steps: steps, y-floor: y-floor)
+  if pts.len() > 1 {
+    cetz-draw.line(..pts, stroke: stroke)
+  }
+
+  if vectors and vector-count > 1 {
+    for i in range(0, vector-count) {
+      let t = t-end * i / (vector-count - 1)
+      let p = conic.projectile-position-raw(origin, velocity, gravity, t)
+      let v = conic.projectile-velocity-raw(velocity, gravity, t)
+      let q = (p.at(0) + v.at(0) * vector-scale, p.at(1) + v.at(1) * vector-scale, p.at(2, default: 0))
+      cetz-draw.line(p, q, stroke: vector-stroke, mark: (end: ">"))
+    }
+  }
 }
 
 /// Draw a circle through a point

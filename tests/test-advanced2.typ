@@ -1,7 +1,7 @@
 #import "/src/lib.typ": *
 #import "/src/conic.typ" as conic
 
-#set page(width: 20cm, height: 20cm, margin: 1cm)
+#set page(width: 20cm, height: 22cm, margin: 1cm)
 
 = Parabola with Tangents from Circle Points
 
