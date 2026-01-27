@@ -28,8 +28,8 @@
 
 /// Draw a point with specified style
 /// Usage: draw-point(cetz-draw, "ctz:A", style: "cross")
-#let draw-point(cetz-draw, coord, style: "cross", color: black) = {
-  let s = point-styles.at(style, default: point-styles.cross)
+#let draw-point(cetz-draw, coord, style: draw.default-point-shape, color: draw.default-point-color) = {
+  let s = point-styles.at(style, default: point-styles.at(draw.default-point-shape))
   let sz = s.size
   let sw = s.at("stroke-width", default: draw.default-point-stroke-width)
 
@@ -64,7 +64,7 @@
 }
 
 /// Draw multiple points
-#let draw-points(cetz-draw, pt-func, ..names, style: "cross", color: black) = {
+#let draw-points(cetz-draw, pt-func, ..names, style: draw.default-point-shape, color: draw.default-point-color) = {
   for name in names.pos() {
     draw-point(cetz-draw, pt-func(name), style: style, color: color)
   }
@@ -76,7 +76,7 @@
 
 /// Draw segment tick marks (for indicating equal lengths)
 /// count: 1 = |, 2 = ||, 3 = |||
-#let draw-segment-mark(cetz-draw, p1, p2, count: 1, size: 0.15, color: black) = {
+#let draw-segment-mark(cetz-draw, p1, p2, count: 1, size: 0.15, color: draw.default-mark-color) = {
   // This needs raw coordinates, so we use a get-ctx approach
   cetz-draw.get-ctx(ctx => {
     // Resolve coordinates
@@ -130,7 +130,7 @@
 }
 
 /// Draw arc tick mark (for equal arcs)
-#let draw-arc-mark(cetz-draw, center, start-pt, end-pt, count: 1, size: 0.2, color: black) = {
+#let draw-arc-mark(cetz-draw, center, start-pt, end-pt, count: 1, size: 0.2, color: draw.default-mark-color) = {
   cetz-draw.get-ctx(ctx => {
     let (_, c) = cetz.coordinate.resolve(ctx, center)
     let (_, s) = cetz.coordinate.resolve(ctx, start-pt)

@@ -20,6 +20,10 @@ The package provides configurable style variables that control the default appea
   [`default-point-size`], [`0.07`], [Point size in canvas units (for `ctz-draw` points)],
   [`default-point-size-pt`], [`2pt`], [Point size in pt (for path markers like crosses)],
   [`default-point-size-small-pt`], [`1.5pt`], [Smaller point size in pt (for dots, circles, squares)],
+  [`default-point-color`], [`black`], [Default color for points],
+  [`default-line-color`], [`black`], [Default color for lines and segments],
+  [`default-mark-color`], [`black`], [Default color for construction marks],
+  [`default-point-shape`], [`"cross"`], [Default point shape (cross, dot, circle, plus, square, diamond, triangle)],
 )
 
 === Customizing Styles
@@ -32,11 +36,15 @@ To customize the default appearance, modify the variables in `src/draw.typ` at t
 #let default-mark-stroke-width = 1.5pt    // thicker tick marks
 #let default-point-size = 0.1             // larger points
 #let default-point-size-pt = 3pt          // larger path markers
+#let default-point-color = blue           // blue points
+#let default-line-color = gray            // gray lines
+#let default-mark-color = red             // red tick marks
+#let default-point-shape = "dot"          // use dots instead of crosses
 ```
 
 All drawing functions throughout the package reference these variables, so changing them once affects all drawings consistently.
 
-The public API also exports these as `ctz-default-point-stroke-width`, etc., for inspection.
+The public API also exports these as `ctz-default-point-stroke-width`, `ctz-default-point-color`, etc., for inspection.
 
 == Points — `ctz-draw-points`
 

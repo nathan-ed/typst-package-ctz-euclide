@@ -24,6 +24,18 @@
 /// Default smaller point size in pt (for dots, circles, squares)
 #let default-point-size-small-pt = 1.5pt
 
+/// Default color for points and marks
+#let default-point-color = black
+
+/// Default color for lines and segments
+#let default-line-color = black
+
+/// Default color for construction marks (tick marks, arc marks)
+#let default-mark-color = black
+
+/// Default point shape ("cross", "dot", "circle", "plus", "square", "diamond", "triangle")
+#let default-point-shape = "cross"
+
 // =============================================================================
 // POINT SHAPES
 // =============================================================================
@@ -42,10 +54,10 @@
 /// Default point style (canvas units)
 /// Used by draw-points-styled via global style
 #let default-point-style = (
-  shape: "cross",
+  shape: default-point-shape,
   size: default-point-size,
-  fill: black,
-  stroke: black,
+  fill: default-point-color,
+  stroke: default-point-color,
   stroke-width: default-point-stroke-width,
 )
 

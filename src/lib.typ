@@ -2507,6 +2507,18 @@
 /// Default smaller point size in pt (for dots, circles, squares)
 #let ctz-default-point-size-small-pt = draw.default-point-size-small-pt
 
+/// Default color for points
+#let ctz-default-point-color = draw.default-point-color
+
+/// Default color for lines and segments
+#let ctz-default-line-color = draw.default-line-color
+
+/// Default color for construction marks (tick marks, arc marks)
+#let ctz-default-mark-color = draw.default-mark-color
+
+/// Default point shape ("cross", "dot", "circle", "plus", "square", "diamond", "triangle")
+#let ctz-default-point-shape = draw.default-point-shape
+
 /// CeTZ canvas alias
 #let ctz-canvas = _canvas
 
