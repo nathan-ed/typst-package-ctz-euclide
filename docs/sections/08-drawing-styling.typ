@@ -46,6 +46,60 @@ All drawing functions throughout the package reference these variables, so chang
 
 The public API also exports these as `ctz-default-point-stroke-width`, `ctz-default-point-color`, etc., for inspection.
 
+== Main Levée (Hand-Drawn Style)
+
+The package supports a "main levée" (hand-drawn/sketchy) style that adds slight perturbations to lines and shapes, giving them a natural, hand-drawn appearance.
+
+=== Main Levée Variables
+
+#table(
+  columns: (auto, auto, auto),
+  align: (left, left, left),
+  stroke: 0.5pt + luma(80%),
+  inset: 6pt,
+  [*Variable*], [*Default*], [*Description*],
+  [`default-main-levee`], [`false`], [Enable hand-drawn style globally],
+  [`default-main-levee-roughness`], [`1.0`], [Roughness amount (0 = smooth, 1-2 = typical)],
+  [`default-main-levee-seed`], [`42`], [Seed for reproducible randomness],
+)
+
+=== Sketchy Drawing Functions
+
+Use these functions to draw with hand-drawn style:
+
+```typst
+#ctz-canvas({
+  import cetz.draw: *
+  ctz-init()
+
+  // Sketchy line
+  ctz-sketchy-line((0, 0), (3, 2), stroke: blue, roughness: 1.2)
+
+  // Sketchy circle
+  ctz-sketchy-circle((2, 2), 1.5, stroke: red)
+
+  // Sketchy polygon (triangle)
+  ctz-sketchy-polygon((0, 0), (3, 0), (1.5, 2.5), stroke: green)
+
+  // Sketchy ellipse
+  ctz-sketchy-ellipse((0, 0), 2, 1, angle: 30deg, stroke: purple)
+
+  // Sketchy rectangle
+  ctz-sketchy-rect((-1, -1), (1, 1), stroke: orange)
+
+  // Sketchy arc
+  ctz-sketchy-arc((0, 0), 2, 0deg, 90deg, stroke: gray)
+})
+```
+
+=== Global Main Levée Mode
+
+You can enable main-levée mode globally (affects standard drawing too when implemented):
+
+```typst
+ctz-main-levee(enabled: true, roughness: 1.5, seed: 123)
+```
+
 == Points — `ctz-draw-points`
 
 Draw points at named locations:

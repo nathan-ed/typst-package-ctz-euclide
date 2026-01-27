@@ -2519,6 +2519,44 @@
 /// Default point shape ("cross", "dot", "circle", "plus", "square", "diamond", "triangle")
 #let ctz-default-point-shape = draw.default-point-shape
 
+// =============================================================================
+// MAIN LEVÉE (HAND-DRAWN STYLE) EXPORTS
+// =============================================================================
+
+/// Default main-levée enabled state
+#let ctz-default-main-levee = draw.default-main-levee
+
+/// Default main-levée roughness (0 = smooth, 1-2 = typical hand-drawn)
+#let ctz-default-main-levee-roughness = draw.default-main-levee-roughness
+
+/// Default main-levée seed for reproducible randomness
+#let ctz-default-main-levee-seed = draw.default-main-levee-seed
+
+/// Enable/disable main-levée (hand-drawn) mode
+/// Usage: ctz-main-levee(true) or ctz-main-levee(true, roughness: 1.5, seed: 123)
+#let ctz-main-levee(enabled: true, roughness: auto, seed: auto) = drawing.set-main-levee(cetz.draw, enabled: enabled, roughness: roughness, seed: seed)
+
+/// Draw sketchy line (explicit main-levée)
+#let ctz-sketchy-line(p1, p2, roughness: draw.default-main-levee-roughness, seed: draw.default-main-levee-seed, ..style) = drawing.draw-sketchy-line(cetz.draw, p1, p2, roughness: roughness, seed: seed, ..style)
+
+/// Draw sketchy circle (explicit main-levée)
+#let ctz-sketchy-circle(center, radius, roughness: draw.default-main-levee-roughness, seed: draw.default-main-levee-seed, ..style) = drawing.draw-sketchy-circle(cetz.draw, center, radius, roughness: roughness, seed: seed, ..style)
+
+/// Draw sketchy polygon (explicit main-levée)
+#let ctz-sketchy-polygon(..vertices, roughness: draw.default-main-levee-roughness, seed: draw.default-main-levee-seed, close: true, stroke: black) = {
+  let pts = vertices.pos()
+  drawing.draw-sketchy-polygon(cetz.draw, pts, roughness: roughness, seed: seed, close: close, stroke: stroke)
+}
+
+/// Draw sketchy ellipse (explicit main-levée)
+#let ctz-sketchy-ellipse(center, rx, ry, angle: 0deg, roughness: draw.default-main-levee-roughness, seed: draw.default-main-levee-seed, ..style) = drawing.draw-sketchy-ellipse(cetz.draw, center, rx, ry, angle: angle, roughness: roughness, seed: seed, ..style)
+
+/// Draw sketchy rectangle (explicit main-levée)
+#let ctz-sketchy-rect(corner1, corner2, roughness: draw.default-main-levee-roughness, seed: draw.default-main-levee-seed, ..style) = drawing.draw-sketchy-rect(cetz.draw, corner1, corner2, roughness: roughness, seed: seed, ..style)
+
+/// Draw sketchy arc (explicit main-levée)
+#let ctz-sketchy-arc(center, radius, start-angle, end-angle, roughness: draw.default-main-levee-roughness, seed: draw.default-main-levee-seed, ..style) = drawing.draw-sketchy-arc(cetz.draw, center, radius, start-angle, end-angle, roughness: roughness, seed: seed, ..style)
+
 /// CeTZ canvas alias
 #let ctz-canvas = _canvas
 

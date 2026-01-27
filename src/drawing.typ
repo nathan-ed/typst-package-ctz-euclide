@@ -16,6 +16,138 @@
 #import "drawing/annotations.typ": *
 
 // =============================================================================
+// MAIN LEVÉE (HAND-DRAWN STYLE) DRAWING FUNCTIONS
+// =============================================================================
+
+/// Draw a sketchy line (main-levée style)
+/// Uses multiple segments with slight perturbations for hand-drawn effect
+#let draw-sketchy-line(cetz-draw, p1, p2, roughness: draw.default-main-levee-roughness, seed: draw.default-main-levee-seed, ..style) = {
+  cetz-draw.get-ctx(ctx => {
+    let (_, c1) = cetz.coordinate.resolve(ctx, p1)
+    let (_, c2) = cetz.coordinate.resolve(ctx, p2)
+    let points = draw.sketchy-line-points(c1, c2, roughness: roughness, seed: seed)
+    cetz-draw.line(..points, ..style)
+  })
+}
+
+/// Draw a sketchy circle (main-levée style)
+#let draw-sketchy-circle(cetz-draw, center, radius, roughness: draw.default-main-levee-roughness, seed: draw.default-main-levee-seed, steps: 48, ..style) = {
+  cetz-draw.get-ctx(ctx => {
+    let (_, c) = cetz.coordinate.resolve(ctx, center)
+    let points = draw.sketchy-circle-points(c, radius, roughness: roughness, seed: seed, steps: steps)
+    cetz-draw.line(..points, ..style)
+  })
+}
+
+/// Draw a sketchy arc (main-levée style)
+#let draw-sketchy-arc(cetz-draw, center, radius, start-angle, end-angle, roughness: draw.default-main-levee-roughness, seed: draw.default-main-levee-seed, steps: 24, ..style) = {
+  cetz-draw.get-ctx(ctx => {
+    let (_, c) = cetz.coordinate.resolve(ctx, center)
+    // Convert angles to radians if needed
+    let start-rad = if type(start-angle) == angle { start-angle / 1rad } else { start-angle * calc.pi / 180 }
+    let end-rad = if type(end-angle) == angle { end-angle / 1rad } else { end-angle * calc.pi / 180 }
+    let points = draw.sketchy-arc-points(c, radius, start-rad, end-rad, roughness: roughness, seed: seed, steps: steps)
+    cetz-draw.line(..points, ..style)
+  })
+}
+
+/// Draw a sketchy polygon (main-levée style)
+#let draw-sketchy-polygon(cetz-draw, vertices, roughness: draw.default-main-levee-roughness, seed: draw.default-main-levee-seed, close: true, ..style) = {
+  cetz-draw.get-ctx(ctx => {
+    // Resolve all vertices
+    let resolved = ()
+    for v in vertices {
+      let (_, c) = cetz.coordinate.resolve(ctx, v)
+      resolved.push(c)
+    }
+
+    // Generate sketchy edges
+    let all-points = ()
+    for i in range(resolved.len()) {
+      let next-i = calc.rem(i + 1, resolved.len())
+      if i == resolved.len() - 1 and not close { break }
+      let edge-points = draw.sketchy-line-points(
+        resolved.at(i),
+        resolved.at(next-i),
+        roughness: roughness,
+        seed: seed + i * 100,
+        base-index: i * 20
+      )
+      // Add points (skip first point except for first edge to avoid duplicates)
+      if i == 0 {
+        all-points += edge-points
+      } else {
+        all-points += edge-points.slice(1)
+      }
+    }
+    cetz-draw.line(..all-points, ..style)
+  })
+}
+
+/// Draw a sketchy ellipse (main-levée style)
+#let draw-sketchy-ellipse(cetz-draw, center, rx, ry, angle: 0deg, roughness: draw.default-main-levee-roughness, seed: draw.default-main-levee-seed, steps: 48, ..style) = {
+  cetz-draw.get-ctx(ctx => {
+    let (_, c) = cetz.coordinate.resolve(ctx, center)
+    let points = draw.sketchy-ellipse-points(c, rx, ry, angle: angle, roughness: roughness, seed: seed, steps: steps)
+    cetz-draw.line(..points, ..style)
+  })
+}
+
+/// Draw a sketchy rectangle (main-levée style)
+#let draw-sketchy-rect(cetz-draw, corner1, corner2, roughness: draw.default-main-levee-roughness, seed: draw.default-main-levee-seed, ..style) = {
+  cetz-draw.get-ctx(ctx => {
+    let (_, c1) = cetz.coordinate.resolve(ctx, corner1)
+    let (_, c2) = cetz.coordinate.resolve(ctx, corner2)
+    let vertices = (
+      c1,
+      (c2.at(0), c1.at(1)),
+      c2,
+      (c1.at(0), c2.at(1)),
+    )
+    // Use polygon drawing
+    let all-points = ()
+    for i in range(4) {
+      let next-i = calc.rem(i + 1, 4)
+      let edge-points = draw.sketchy-line-points(
+        vertices.at(i),
+        vertices.at(next-i),
+        roughness: roughness,
+        seed: seed + i * 100,
+        base-index: i * 20
+      )
+      if i == 0 {
+        all-points += edge-points
+      } else {
+        all-points += edge-points.slice(1)
+      }
+    }
+    cetz-draw.line(..all-points, close: true, ..style)
+  })
+}
+
+/// Check if main-levée is enabled and get current settings
+#let get-main-levee-settings(ctx) = {
+  let enabled = ctx.shared-state.at("ctz-main-levee", default: draw.default-main-levee)
+  let roughness = ctx.shared-state.at("ctz-main-levee-roughness", default: draw.default-main-levee-roughness)
+  let seed = ctx.shared-state.at("ctz-main-levee-seed", default: draw.default-main-levee-seed)
+  (enabled: enabled, roughness: roughness, seed: seed)
+}
+
+/// Set main-levée mode in context
+#let set-main-levee(cetz-draw, enabled: true, roughness: auto, seed: auto) = {
+  cetz-draw.set-ctx(ctx => {
+    ctx.shared-state.insert("ctz-main-levee", enabled)
+    if roughness != auto {
+      ctx.shared-state.insert("ctz-main-levee-roughness", roughness)
+    }
+    if seed != auto {
+      ctx.shared-state.insert("ctz-main-levee-seed", seed)
+    }
+    ctx
+  })
+}
+
+// =============================================================================
 // SMART LABEL POSITIONING
 // =============================================================================
 
