@@ -3,6 +3,41 @@
 
 = Drawing & Styling
 
+== Global Style Configuration
+
+The package provides configurable style variables that control the default appearance of points, crosses, and marks. These are defined in `draw.typ` and can be overridden.
+
+=== Style Variables
+
+#table(
+  columns: (auto, auto, auto),
+  align: (left, left, left),
+  stroke: 0.5pt + luma(80%),
+  inset: 6pt,
+  [*Variable*], [*Default*], [*Description*],
+  [`default-point-stroke-width`], [`0.9pt`], [Stroke width for point markers (crosses, plus signs)],
+  [`default-mark-stroke-width`], [`1pt`], [Stroke width for tick marks on segments and arcs],
+  [`default-point-size`], [`0.07`], [Point size in canvas units (for `ctz-draw` points)],
+  [`default-point-size-pt`], [`2pt`], [Point size in pt (for path markers like crosses)],
+  [`default-point-size-small-pt`], [`1.5pt`], [Smaller point size in pt (for dots, circles, squares)],
+)
+
+=== Customizing Styles
+
+To customize the default appearance, modify the variables in `src/draw.typ` at the top of the file:
+
+```typst
+// In src/draw.typ - modify these values:
+#let default-point-stroke-width = 1.2pt   // thicker crosses
+#let default-mark-stroke-width = 1.5pt    // thicker tick marks
+#let default-point-size = 0.1             // larger points
+#let default-point-size-pt = 3pt          // larger path markers
+```
+
+All drawing functions throughout the package reference these variables, so changing them once affects all drawings consistently.
+
+The public API also exports these as `ctz-default-point-stroke-width`, etc., for inspection.
+
 == Points — `ctz-draw-points`
 
 Draw points at named locations:
