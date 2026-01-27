@@ -1,5 +1,5 @@
 // Clipping
-#import "/docs/helpers.typ": *
+#import "../helpers.typ": *
 
 = Clipping
 

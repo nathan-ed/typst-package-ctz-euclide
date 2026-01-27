@@ -1,5 +1,5 @@
 // Triangle Centers
-#import "/docs/helpers.typ": *
+#import "../helpers.typ": *
 
 = Triangle Centers
 

@@ -1,5 +1,5 @@
 // Point Definitions
-#import "/docs/helpers.typ": *
+#import "../helpers.typ": *
 
 = Point Definitions
 

@@ -1,5 +1,5 @@
 // Core Concepts
-#import "/docs/helpers.typ": *
+#import "../helpers.typ": *
 
 = Core Concepts
 

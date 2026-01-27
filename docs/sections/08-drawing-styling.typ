@@ -1,5 +1,5 @@
 // Drawing & Styling
-#import "/docs/helpers.typ": *
+#import "../helpers.typ": *
 
 = Drawing & Styling
 
@@ -54,6 +54,8 @@ Use `ctz-draw()` to draw any object type without remembering type-specific comma
 === Drawing Unnamed Constructs
 
 You can also use `ctz-draw()` to draw geometric objects directly without defining them first using named parameters.
+
+*Define vs Draw*: Most `ctz-draw()` type parameters have a corresponding `ctz-def-*` function. Use `ctz-def-*` when you need to reuse the object (for intersections, transformations, etc.). Use the draw shorthand for one-off drawing. See the summary table at the end of this section.
 
 ==== Points with Labels
 
@@ -740,4 +742,57 @@ Mark a right angle with a small square:
 )
 
 #pagebreak()
+
+== Summary: Draw and Define Correspondence
+
+The table below shows which `ctz-draw()` type parameters have corresponding `ctz-def-*` functions. Use `ctz-def-*` when you need to reference the object later (for intersections, transformations, etc.).
+
+=== Geometric Objects (Have Define Functions)
+
+#table(
+  columns: (auto, auto, auto),
+  align: (left, left, left),
+  stroke: 0.5pt + luma(80%),
+  inset: 6pt,
+  [*Draw Shorthand*], [*Define Function*], [*Object Type*],
+  [`points: (...)`], [`ctz-def-points(...)`], [Points],
+  [`line: (...)`], [`ctz-def-line(name, a, b)`], [Line/Polyline],
+  [`circle-r: (center, r)`], [`ctz-def-circle(name, center, radius: r)`], [Circle],
+  [`circle-through: (center, pt)`], [`ctz-def-circle(name, center, through: pt)`], [Circle],
+  [`circle-diameter: (a, b)`], [`ctz-def-circle-diameter(name, a, b)`], [Circle],
+  [`circumcircle: (a, b, c)`], [`ctz-def-circumcircle(name, a, b, c)`], [Circle],
+  [`incircle: (a, b, c)`], [`ctz-def-incircle(name, a, b, c)`], [Circle],
+  [—], [`ctz-def-excircle(name, a, b, c, vertex: v)`], [Circle],
+  [—], [`ctz-def-euler-circle(name, a, b, c)`], [Circle],
+  [—], [`ctz-def-spieker-circle(name, a, b, c)`], [Circle],
+  [—], [`ctz-def-apollonius-circle(name, a, b, k)`], [Circle],
+  [`ellipse: (center, rx, ry, angle)`], [`ctz-def-ellipse(name, center, rx, ry, angle: 0deg)`], [Conic],
+  [—], [`ctz-def-ellipse-foci(n1, n2, center, rx, ry, angle)`], [Points (foci)],
+  [—], [`ctz-def-ellipse-tangent(name, center, rx, ry, t, ...)`], [Line (tangent)],
+  [—], [`ctz-def-ellipse-tangents-from(n1, n2, center, rx, ry, pt, ...)`], [Lines (tangents)],
+  [`parabola: (focus, directrix, extent)`], [`ctz-def-parabola(name, focus, directrix, ...)`], [Conic],
+  [—], [`ctz-def-parabola-focus(name, focus, p, angle, ...)`], [Conic],
+  [—], [`ctz-def-parabola-tangent(name, focus, directrix, t, ...)`], [Line (tangent)],
+  [—], [`ctz-def-parabola-tangents-from(n1, n2, focus, dir, pt, ...)`], [Lines (tangents)],
+  [`projectile: (...)`], [`ctz-def-projectile(name, origin, velocity, ...)`], [Conic],
+)
+
+=== Drawing Primitives (No Define Functions)
+
+These are purely visual elements that don't need to be stored for later geometric operations:
+
+#table(
+  columns: (auto, auto),
+  align: (left, left),
+  stroke: 0.5pt + luma(80%),
+  inset: 6pt,
+  [*Draw Function/Parameter*], [*Purpose*],
+  [`arc:`, `arc-r:`, `semicircle:`], [Partial circles (drawing only)],
+  [`segment:`], [Line segment (use `ctz-def-line` if needed)],
+  [`path:`], [CeTZ-style path syntax],
+  [`labels:`], [Point labels],
+  [`ctz-draw-angle`, `ctz-draw-fill-angle`], [Angle arcs and fills],
+  [`ctz-draw-mark-segment`, `ctz-draw-mark-right-angle`], [Geometric marks],
+  [`ctz-draw-grid`, `ctz-draw-axes`], [Coordinate system decoration],
+)
 

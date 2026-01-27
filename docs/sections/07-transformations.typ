@@ -1,5 +1,5 @@
 // Transformations
-#import "/docs/helpers.typ": *
+#import "../helpers.typ": *
 
 = Transformations
 

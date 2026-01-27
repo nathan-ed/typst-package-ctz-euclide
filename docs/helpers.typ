@@ -1,5 +1,6 @@
 // Shared helper functions for manual documentation
-#import "/src/lib.typ": *
+// Use local source for development; change to @preview/ctz-euclide:X.X.X for release
+#import "../src/lib.typ": *
 
 /// Two-column example layout with code and figure
 #let example(code, body, length: 0.75cm) = block(breakable: false)[

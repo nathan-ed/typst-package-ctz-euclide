@@ -1,5 +1,5 @@
 // Advanced Examples
-#import "/docs/helpers.typ": *
+#import "../helpers.typ": *
 
 = Advanced Examples
 
@@ -160,8 +160,7 @@
   "Parabola Tangents from Circle",
   {
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": conic-raw
-    let conic = conic-raw
+    import "@preview/ctz-euclide:0.1.0": *
     ctz-init()
 
     let F = (0, 0)
@@ -172,7 +171,7 @@
 
     ctz-draw-parabola-focus(F, p, angle: theta, extent: 2.8, stroke: (paint: black, thickness: 1pt))
 
-    let (D1, D2, V) = (parabola-directrix-raw(F, p, angle: theta)
+    let (D1, D2, V) = parabola-directrix-raw(F, p, angle: theta)
 
     // Circle positioned to be tangent to the parabola
     let C = (V.at(0) + 10 * (V.at(0) - F.at(0)), V.at(1) + 10 * (V.at(1) - F.at(1)))
@@ -186,7 +185,7 @@
 
     // Draw tangents from each M point to parabola
     for M in (M1, M2, M3) {
-      let tangents = (parabola-tangents-from-point-raw(F, D1, D2, M, length: 1.5)
+      let tangents = parabola-tangents-from-point-raw(F, D1, D2, M, length: 1.5)
       for t in tangents {
         let (p1, p2, tp) = t
         ctz-draw(line: (p1, p2), stroke: (paint: red, thickness: 0.8pt))
@@ -206,8 +205,7 @@
   code: [```typst
 #ctz-canvas(length: 0.7cm, {
   import cetz.draw: *
-  import "@local/ctz-euclide:0.1.0": conic-raw
-    let conic = conic-raw
+  import "@preview/ctz-euclide:0.1.0": *
   ctz-init()
 
   let F = (0, 0)
@@ -220,7 +218,7 @@
   ctz-draw-parabola-focus(F, p, angle: theta, extent: 2.8,
     stroke: (paint: black, thickness: 1pt))
 
-  let (D1, D2, V) = (parabola-directrix-raw(F, p, angle: theta)
+  let (D1, D2, V) = parabola-directrix-raw(F, p, angle: theta)
 
   // Circle positioned to be tangent to parabola
   let C = (V.at(0) + 10 * (V.at(0) - F.at(0)),
@@ -235,7 +233,7 @@
 
   // Draw tangent lines from each M point to parabola
   for M in (M1, M2, M3) {
-    let tangents = (parabola-tangents-from-point-raw(
+    let tangents = parabola-tangents-from-point-raw(
       F, D1, D2, M, length: 1.5)
     for t in tangents {
       let (p1, p2, tp) = t

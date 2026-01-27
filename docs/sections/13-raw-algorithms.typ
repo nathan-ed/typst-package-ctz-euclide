@@ -1,5 +1,5 @@
 // Raw Algorithms
-#import "/docs/helpers.typ": *
+#import "../helpers.typ": *
 
 = Raw Algorithms
 

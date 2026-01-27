@@ -397,6 +397,114 @@
   },)
 }
 
+/// Define a named circle by diameter endpoints
+#let _def-circle-diameter(name, a, b) = {
+  (ctx => {
+    let pa = _resolve-point(ctx, a)
+    let pb = _resolve-point(ctx, b)
+    let (center, radius) = circle.circle-diameter-raw(pa, pb)
+
+    let circles = _get-circles(ctx)
+    circles.insert(name, (center: center, radius: radius))
+    ctx = _set-circles(ctx, circles)
+    (ctx: ctx)
+  },)
+}
+
+/// Define a named circumcircle of triangle
+#let _def-circumcircle(name, a, b, c) = {
+  (ctx => {
+    let pa = _resolve-point(ctx, a)
+    let pb = _resolve-point(ctx, b)
+    let pc = _resolve-point(ctx, c)
+    let (center, radius) = circle.circle-circum-raw(pa, pb, pc)
+
+    let circles = _get-circles(ctx)
+    circles.insert(name, (center: center, radius: radius))
+    ctx = _set-circles(ctx, circles)
+    (ctx: ctx)
+  },)
+}
+
+/// Define a named incircle of triangle
+#let _def-incircle(name, a, b, c) = {
+  (ctx => {
+    let pa = _resolve-point(ctx, a)
+    let pb = _resolve-point(ctx, b)
+    let pc = _resolve-point(ctx, c)
+    let (center, radius) = circle.circle-in-raw(pa, pb, pc)
+
+    let circles = _get-circles(ctx)
+    circles.insert(name, (center: center, radius: radius))
+    ctx = _set-circles(ctx, circles)
+    (ctx: ctx)
+  },)
+}
+
+/// Define a named excircle of triangle opposite to vertex
+#let _def-excircle(name, a, b, c, vertex: "a") = {
+  (ctx => {
+    let pa = _resolve-point(ctx, a)
+    let pb = _resolve-point(ctx, b)
+    let pc = _resolve-point(ctx, c)
+    let (center, radius) = circle.circle-ex-raw(pa, pb, pc, vertex: vertex)
+
+    let circles = _get-circles(ctx)
+    circles.insert(name, (center: center, radius: radius))
+    ctx = _set-circles(ctx, circles)
+    (ctx: ctx)
+  },)
+}
+
+/// Define a named nine-point (Euler) circle of triangle
+#let _def-euler-circle(name, a, b, c) = {
+  (ctx => {
+    let pa = _resolve-point(ctx, a)
+    let pb = _resolve-point(ctx, b)
+    let pc = _resolve-point(ctx, c)
+    let (center, radius) = circle.circle-euler-raw(pa, pb, pc)
+
+    let circles = _get-circles(ctx)
+    circles.insert(name, (center: center, radius: radius))
+    ctx = _set-circles(ctx, circles)
+    (ctx: ctx)
+  },)
+}
+
+/// Define a named Spieker circle (incircle of medial triangle)
+#let _def-spieker-circle(name, a, b, c) = {
+  (ctx => {
+    let pa = _resolve-point(ctx, a)
+    let pb = _resolve-point(ctx, b)
+    let pc = _resolve-point(ctx, c)
+    let (center, radius) = circle.circle-spieker-raw(pa, pb, pc)
+
+    let circles = _get-circles(ctx)
+    circles.insert(name, (center: center, radius: radius))
+    ctx = _set-circles(ctx, circles)
+    (ctx: ctx)
+  },)
+}
+
+/// Define a named Apollonius circle
+#let _def-apollonius-circle(name, a, b, k) = {
+  (ctx => {
+    let pa = _resolve-point(ctx, a)
+    let pb = _resolve-point(ctx, b)
+    let result = circle.apollonius-circle-raw(pa, pb, k)
+
+    if result == none {
+      panic("Apollonius circle with k=1 is a line (perpendicular bisector), not a circle")
+    }
+
+    let (center, radius) = result
+    let circles = _get-circles(ctx)
+    circles.insert(name, (center: center, radius: radius))
+    ctx = _set-circles(ctx, circles)
+    (ctx: ctx)
+  },)
+}
+
 /// Define a named ellipse by center and radii
 #let _def-ellipse(name, center, rx, ry, angle: 0deg) = {
   (ctx => {
@@ -458,6 +566,118 @@
       vector-scale: vector-scale,
     ))
     ctx = _set-conics(ctx, conics)
+    (ctx: ctx)
+  },)
+}
+
+/// Define a parabola by focus, parameter p (focus-vertex distance), and angle
+#let _def-parabola-focus(name, focus, p, angle: 0deg, extent: auto, steps: 120) = {
+  (ctx => {
+    let f = _resolve-point(ctx, focus)
+    let p-num = if type(p) == length { p / 1cm } else { p }
+    let ext = if extent == auto { auto } else if type(extent) == length { extent / 1cm } else { extent }
+    let (d1, d2, _vertex) = conic.parabola-directrix-raw(f, p-num, angle: angle)
+
+    let conics = _get-conics(ctx)
+    conics.insert(name, (type: "parabola", focus: f, directrix: (d1, d2), extent: ext, steps: steps))
+    ctx = _set-conics(ctx, conics)
+    (ctx: ctx)
+  },)
+}
+
+/// Define the two foci of an ellipse as named points
+#let _def-ellipse-foci(name1, name2, center, rx, ry, angle: 0deg) = {
+  (ctx => {
+    let c = _resolve-point(ctx, center)
+    let rx-num = if type(rx) == length { rx / 1cm } else { rx }
+    let ry-num = if type(ry) == length { ry / 1cm } else { ry }
+    let (f1, f2) = conic.ellipse-foci-raw(c, rx-num, ry-num, angle: angle)
+
+    let points = _get-points(ctx)
+    points.insert(name1, f1)
+    points.insert(name2, f2)
+    ctx = _set-points(ctx, points)
+    (ctx: ctx)
+  },)
+}
+
+/// Define tangent line at parameter t on an ellipse
+#let _def-ellipse-tangent(name, center, rx, ry, t, angle: 0deg, length: auto) = {
+  (ctx => {
+    let c = _resolve-point(ctx, center)
+    let rx-num = if type(rx) == length { rx / 1cm } else { rx }
+    let ry-num = if type(ry) == length { ry / 1cm } else { ry }
+    let len = if length == auto { auto } else if type(length) == length { length / 1cm } else { length }
+    let (p1, p2, _pt) = conic.ellipse-tangent-raw(c, rx-num, ry-num, angle: angle, t: t, length: len)
+
+    let lines = _get-lines(ctx)
+    lines.insert(name, (p1, p2))
+    ctx = _set-lines(ctx, lines)
+    (ctx: ctx)
+  },)
+}
+
+/// Define tangent lines from external point to ellipse
+#let _def-ellipse-tangents-from(name1, name2, center, rx, ry, external, angle: 0deg, length: auto) = {
+  (ctx => {
+    let c = _resolve-point(ctx, center)
+    let ext = _resolve-point(ctx, external)
+    let rx-num = if type(rx) == length { rx / 1cm } else { rx }
+    let ry-num = if type(ry) == length { ry / 1cm } else { ry }
+    let len = if length == auto { auto } else if type(length) == length { length / 1cm } else { length }
+    let tangents = conic.ellipse-tangents-from-point-raw(c, rx-num, ry-num, angle: angle, ext, length: len)
+
+    let lines = _get-lines(ctx)
+    if tangents.len() >= 1 {
+      let (p1, p2, _pt) = tangents.at(0)
+      lines.insert(name1, (p1, p2))
+    }
+    if tangents.len() >= 2 {
+      let (p1, p2, _pt) = tangents.at(1)
+      lines.insert(name2, (p1, p2))
+    }
+    ctx = _set-lines(ctx, lines)
+    (ctx: ctx)
+  },)
+}
+
+/// Define tangent line at parameter t on a parabola
+#let _def-parabola-tangent(name, focus, directrix, t, length: auto) = {
+  (ctx => {
+    let f = _resolve-point(ctx, focus)
+    let (da, db) = _parse-line(ctx, directrix)
+    let len = if length == auto { auto } else if type(length) == length { length / 1cm } else { length }
+    let result = conic.parabola-tangent-raw(f, da, db, t, length: len)
+
+    if result != none {
+      let (p1, p2, _pt) = result
+      let lines = _get-lines(ctx)
+      lines.insert(name, (p1, p2))
+      ctx = _set-lines(ctx, lines)
+    }
+    (ctx: ctx)
+  },)
+}
+
+/// Define tangent lines from external point to parabola
+#let _def-parabola-tangents-from(name1, name2, focus, directrix, external, length: auto) = {
+  (ctx => {
+    let f = _resolve-point(ctx, focus)
+    let (da, db) = _parse-line(ctx, directrix)
+    let ext = _resolve-point(ctx, external)
+    let len = if length == auto { auto } else if type(length) == length { length / 1cm } else { length }
+    let tangents = conic.parabola-tangents-from-point-raw(f, da, db, ext, length: len)
+
+    let lines = _get-lines(ctx)
+    if tangents.len() >= 1 {
+      let (p1, p2, _pt) = tangents.at(0)
+      lines.insert(name1, (p1, p2))
+    }
+    if tangents.len() >= 2 {
+      let (p1, p2, _pt) = tangents.at(1)
+      lines.insert(name2, (p1, p2))
+    }
+    ctx = _set-lines(ctx, lines)
     (ctx: ctx)
   },)
 }
@@ -2279,9 +2499,22 @@
 #let ctz-pts(..points) = ctz-def-points(..points)
 #let ctz-def-line(name, a, b) = _def-line-name(name, a, b)
 #let ctz-def-circle(name, center, radius: auto, through: none) = _def-circle(name, center, radius: radius, through: through)
+#let ctz-def-circle-diameter(name, a, b) = _def-circle-diameter(name, a, b)
+#let ctz-def-circumcircle(name, a, b, c) = _def-circumcircle(name, a, b, c)
+#let ctz-def-incircle(name, a, b, c) = _def-incircle(name, a, b, c)
+#let ctz-def-excircle(name, a, b, c, vertex: "a") = _def-excircle(name, a, b, c, vertex: vertex)
+#let ctz-def-euler-circle(name, a, b, c) = _def-euler-circle(name, a, b, c)
+#let ctz-def-spieker-circle(name, a, b, c) = _def-spieker-circle(name, a, b, c)
+#let ctz-def-apollonius-circle(name, a, b, k) = _def-apollonius-circle(name, a, b, k)
 #let ctz-def-ellipse(name, center, rx, ry, angle: 0deg) = _def-ellipse(name, center, rx, ry, angle: angle)
 #let ctz-def-parabola(name, focus, directrix, extent: auto, steps: 120) = _def-parabola(name, focus, directrix, extent: extent, steps: steps)
 #let ctz-def-projectile(name, origin, velocity, gravity: 9.81, t-max: auto, steps: 80, y-floor: none, vectors: false, vector-count: 5, vector-scale: 0.12) = _def-projectile(name, origin, velocity, gravity: gravity, t-max: t-max, steps: steps, y-floor: y-floor, vectors: vectors, vector-count: vector-count, vector-scale: vector-scale)
+#let ctz-def-parabola-focus(name, focus, p, angle: 0deg, extent: auto, steps: 120) = _def-parabola-focus(name, focus, p, angle: angle, extent: extent, steps: steps)
+#let ctz-def-ellipse-foci(name1, name2, center, rx, ry, angle: 0deg) = _def-ellipse-foci(name1, name2, center, rx, ry, angle: angle)
+#let ctz-def-ellipse-tangent(name, center, rx, ry, t, angle: 0deg, length: auto) = _def-ellipse-tangent(name, center, rx, ry, t, angle: angle, length: length)
+#let ctz-def-ellipse-tangents-from(name1, name2, center, rx, ry, external, angle: 0deg, length: auto) = _def-ellipse-tangents-from(name1, name2, center, rx, ry, external, angle: angle, length: length)
+#let ctz-def-parabola-tangent(name, focus, directrix, t, length: auto) = _def-parabola-tangent(name, focus, directrix, t, length: length)
+#let ctz-def-parabola-tangents-from(name1, name2, focus, directrix, external, length: auto) = _def-parabola-tangents-from(name1, name2, focus, directrix, external, length: length)
 #let ctz-def-polygon(name, ..points) = _def-polygon(name, ..points)
 
 // Intersections

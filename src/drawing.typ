@@ -88,13 +88,13 @@
 
 /// Point style presets
 #let point-styles = (
-  cross: (shape: "cross", size: 4pt),
-  dot: (shape: "dot", size: 3pt),
-  circle: (shape: "circle", size: 3pt),
-  plus: (shape: "plus", size: 4pt),
-  square: (shape: "square", size: 3pt),
-  diamond: (shape: "diamond", size: 4pt),
-  triangle: (shape: "triangle", size: 4pt),
+  cross: (shape: "cross", size: 2.5pt),
+  dot: (shape: "dot", size: 2pt),
+  circle: (shape: "circle", size: 2pt),
+  plus: (shape: "plus", size: 2.5pt),
+  square: (shape: "square", size: 2pt),
+  diamond: (shape: "diamond", size: 2.5pt),
+  triangle: (shape: "triangle", size: 2.5pt),
 )
 
 /// Draw a point with specified style

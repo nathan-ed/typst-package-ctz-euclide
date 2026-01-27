@@ -1,5 +1,5 @@
 // Function Reference
-#import "/docs/helpers.typ": *
+#import "../helpers.typ": *
 
 = Function Reference
 

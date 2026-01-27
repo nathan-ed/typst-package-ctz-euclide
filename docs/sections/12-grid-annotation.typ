@@ -1,7 +1,7 @@
 // Grid & Annotation Helpers
 // Helper functions for structured diagrams with grids, highlights, and annotations
 
-#import "/docs/helpers.typ": *
+#import "../helpers.typ": *
 
 = Grid & Annotation Helpers
 
@@ -19,8 +19,8 @@ The `triangular-pos(row, col)` function computes positions in a triangular layou
   [```typst
   #cetz.canvas({
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: *
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": *
 
     draw-triangular-grid(
       cetz.draw, 5,
@@ -33,8 +33,8 @@ The `triangular-pos(row, col)` function computes positions in a triangular layou
   ```],
   {
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: *
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": *
 
     draw-triangular-grid(
       cetz.draw, 5,
@@ -62,8 +62,8 @@ For Pascal's triangle binomial coefficients, use `draw-pascal-values`:
   [```typst
   #cetz.canvas({
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: *
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": *
 
     draw-pascal-values(cetz.draw, 6,
       h-spacing: 1.5, v-spacing: 1.0,
@@ -72,8 +72,8 @@ For Pascal's triangle binomial coefficients, use `draw-pascal-values`:
   ```],
   {
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: *
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": *
 
     draw-pascal-values(cetz.draw, 6, h-spacing: 1.5, v-spacing: 1.0, text-size: 11pt)
   },
@@ -88,8 +88,8 @@ Add row labels (`draw-row-labels`) and diagonal labels (`draw-diagonal-labels`):
   [```typst
   #cetz.canvas({
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: *
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": *
 
     let sp = (h: 1.4, v: 1.0)
 
@@ -110,8 +110,8 @@ Add row labels (`draw-row-labels`) and diagonal labels (`draw-diagonal-labels`):
   ```],
   {
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: *
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": *
 
     let sp = (h: 1.4, v: 1.0)
     draw-pascal-values(cetz.draw, 5, h-spacing: sp.h, v-spacing: sp.v, text-size: 10pt)
@@ -129,8 +129,8 @@ The `grid-pos(row, col)` function computes positions in a standard rectangular g
   [```typst
   #cetz.canvas({
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: *
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": *
 
     draw-rectangular-grid(
       cetz.draw, 3, 4,
@@ -141,8 +141,8 @@ The `grid-pos(row, col)` function computes positions in a standard rectangular g
   ```],
   {
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: *
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": *
 
     draw-rectangular-grid(cetz.draw, 3, 4, (r, c) => str(r * 4 + c + 1), h-spacing: 1.2, v-spacing: 1.0, text-size: 11pt)
   },
@@ -157,13 +157,13 @@ The `hex-pos(row, col)` function computes positions in a hexagonal (honeycomb) g
   [```typst
   #cetz.canvas({
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: hex-pos
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": hex-pos
 
     for row in range(3) {
       for col in range(4) {
         let p = hex-pos(row, col, size: 0.8)
-        circle(p, radius: 0.35,
+        cetz.draw.circle(p, radius: 0.35,
           stroke: blue + 0.5pt,
           fill: blue.lighten(90%))
         content(p, text(size: 8pt,
@@ -174,13 +174,13 @@ The `hex-pos(row, col)` function computes positions in a hexagonal (honeycomb) g
   ```],
   {
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: hex-pos
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": hex-pos
 
     for row in range(3) {
       for col in range(4) {
         let p = hex-pos(row, col, size: 0.8)
-        circle(p, radius: 0.35, stroke: blue + 0.5pt, fill: blue.lighten(90%))
+        cetz.draw.circle(p, radius: 0.35, stroke: blue + 0.5pt, fill: blue.lighten(90%))
         content(p, text(size: 8pt, str(row) + "," + str(col)))
       }
     }
@@ -200,8 +200,8 @@ Functions for highlighting cells and drawing annotation arrows.
   [```typst
   #cetz.canvas({
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: *
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": *
 
     draw-pascal-values(cetz.draw, 4,
       h-spacing: 1.5, v-spacing: 1.0)
@@ -224,8 +224,8 @@ Functions for highlighting cells and drawing annotation arrows.
   ```],
   {
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: *
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": *
 
     draw-pascal-values(cetz.draw, 4, h-spacing: 1.5, v-spacing: 1.0)
     let p1 = triangular-pos(2, 1, h-spacing: 1.5, v-spacing: 1.0)
@@ -246,8 +246,8 @@ Functions for highlighting cells and drawing annotation arrows.
   [```typst
   #cetz.canvas({
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: *
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": *
 
     content((0, 0), $A$)
     content((3, 0), $B$)
@@ -268,8 +268,8 @@ Functions for highlighting cells and drawing annotation arrows.
   ```],
   {
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: *
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": *
 
     content((0, 0), $A$)
     content((3, 0), $B$)
@@ -290,8 +290,8 @@ Functions for highlighting cells and drawing annotation arrows.
   [```typst
   #cetz.canvas({
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: *
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": *
 
     content((0, 0), $P$)
     content((4, -1), $Q$)
@@ -308,8 +308,8 @@ Functions for highlighting cells and drawing annotation arrows.
   ```],
   {
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: *
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": *
 
     content((0, 0), $P$)
     content((4, -1), $Q$)
@@ -326,8 +326,8 @@ Functions for highlighting cells and drawing annotation arrows.
   [```typst
   #cetz.canvas({
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: *
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": *
 
     let a = (0, 0)
     let b = (1.5, 0)
@@ -343,8 +343,8 @@ Functions for highlighting cells and drawing annotation arrows.
   ```],
   {
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: *
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": *
 
     let a = (0, 0)
     let b = (1.5, 0)
@@ -365,8 +365,8 @@ Functions for highlighting cells and drawing annotation arrows.
   [```typst
   #cetz.canvas({
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: *
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": *
 
     for i in range(5) {
       content((i * 0.8, 0),
@@ -387,8 +387,8 @@ Functions for highlighting cells and drawing annotation arrows.
   ```],
   {
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: *
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": *
 
     for i in range(5) { content((i * 0.8, 0), text(size: 11pt, str(i + 1))) }
     draw-brace-h(cetz.draw, (0, -0.3), (3.2, -0.3), label: text(size: 9pt, "first four"), side: "below", amplitude: 0.25)
@@ -401,8 +401,8 @@ Functions for highlighting cells and drawing annotation arrows.
   [```typst
   #cetz.canvas({
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: *
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": *
 
     for i in range(4) {
       content((0, -i * 0.7),
@@ -423,8 +423,8 @@ Functions for highlighting cells and drawing annotation arrows.
   ```],
   {
     import cetz.draw: *
-    import "@local/ctz-euclide:0.1.0": *
-    import drawing-helpers: *
+    import "@preview/ctz-euclide:0.1.0": *
+    import "@preview/ctz-euclide:0.1.0": *
 
     for i in range(4) { content((0, -i * 0.7), text(size: 11pt, "Row " + str(i))) }
     draw-brace-v(cetz.draw, (1.2, 0), (1.2, -2.1), label: text(size: 9pt, "3 rows"), side: "right", amplitude: 0.3)

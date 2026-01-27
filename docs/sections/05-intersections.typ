@@ -1,5 +1,5 @@
 // Intersections
-#import "/docs/helpers.typ": *
+#import "../helpers.typ": *
 
 = Intersections
 

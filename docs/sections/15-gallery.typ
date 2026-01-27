@@ -1,5 +1,5 @@
 // Gallery Examples
-#import "/docs/helpers.typ": *
+#import "../helpers.typ": *
 
 = Gallery Examples
 

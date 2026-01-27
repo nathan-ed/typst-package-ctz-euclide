@@ -1,5 +1,5 @@
 // Introduction
-#import "/docs/helpers.typ": *
+#import "../helpers.typ": *
 
 = Introduction
 
@@ -22,7 +22,7 @@
 Import the package in your Typst document:
 
 ```typst
-#import "/src/lib.typ": *
+#import "@preview/ctz-euclide:0.1.0": *
 ```
 
 All figures use the `ctz-canvas` function (re-exported from CeTZ):

@@ -1,4 +1,4 @@
-#import "/src/lib.typ": *
+#import "@preview/ctz-euclide:0.1.0": *
 #import "helpers.typ": *
 
 // ==============================================================================
@@ -70,7 +70,7 @@
 
 #include "sections/09-circles.typ"
 
-#include "sections/10-conics.typ"
+// #include "sections/10-conics.typ"
 
 #include "sections/11-clipping.typ"
 

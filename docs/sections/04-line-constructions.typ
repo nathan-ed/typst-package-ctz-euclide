@@ -1,5 +1,5 @@
 // Line Constructions
-#import "/docs/helpers.typ": *
+#import "../helpers.typ": *
 
 = Line Constructions
 
