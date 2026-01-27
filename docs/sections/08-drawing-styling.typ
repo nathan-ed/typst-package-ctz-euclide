@@ -67,34 +67,195 @@ The package supports a "main levée" (hand-drawn/sketchy) style that adds slight
 
 Use these functions to draw with hand-drawn style:
 
-```typst
-#ctz-canvas({
-  import cetz.draw: *
-  ctz-init()
+==== Sketchy Lines
 
-  // Sketchy line
-  ctz-sketchy-line((0, 0), (3, 2), stroke: blue, roughness: 1.2)
+#example(
+  [```typst
+  #ctz-canvas(length: 0.6cm, {
+    import cetz.draw: *
+    ctz-init()
 
-  // Sketchy circle
-  ctz-sketchy-circle((2, 2), 1.5, stroke: red)
+    // Normal line for comparison
+    line((0, 0), (4, 0), stroke: gray)
 
-  // Sketchy polygon (triangle)
-  ctz-sketchy-polygon((0, 0), (3, 0), (1.5, 2.5), stroke: green)
+    // Sketchy lines with different roughness
+    ctz-sketchy-line((0, 1), (4, 1), stroke: blue, roughness: 0.5)
+    ctz-sketchy-line((0, 2), (4, 2), stroke: red, roughness: 1.0)
+    ctz-sketchy-line((0, 3), (4, 3), stroke: green, roughness: 2.0)
+  })
+  ```],
+  {
+    import cetz.draw: *
+    ctz-init()
+    line((0, 0), (4, 0), stroke: gray)
+    ctz-sketchy-line((0, 1), (4, 1), stroke: blue, roughness: 0.5)
+    ctz-sketchy-line((0, 2), (4, 2), stroke: red, roughness: 1.0)
+    ctz-sketchy-line((0, 3), (4, 3), stroke: green, roughness: 2.0)
+  },
+  length: 0.6cm,
+)
 
-  // Sketchy ellipse
-  ctz-sketchy-ellipse((0, 0), 2, 1, angle: 30deg, stroke: purple)
+==== Sketchy Circles
 
-  // Sketchy rectangle
-  ctz-sketchy-rect((-1, -1), (1, 1), stroke: orange)
+#example(
+  [```typst
+  #ctz-canvas(length: 0.5cm, {
+    import cetz.draw: *
+    ctz-init()
 
-  // Sketchy arc
-  ctz-sketchy-arc((0, 0), 2, 0deg, 90deg, stroke: gray)
-})
-```
+    // Normal circle
+    circle((0, 0), radius: 1.5, stroke: gray)
+
+    // Sketchy circle
+    ctz-sketchy-circle((4, 0), 1.5, stroke: blue, roughness: 1.2)
+  })
+  ```],
+  {
+    import cetz.draw: *
+    ctz-init()
+    circle((0, 0), radius: 1.5, stroke: gray)
+    ctz-sketchy-circle((4, 0), 1.5, stroke: blue, roughness: 1.2)
+  },
+  length: 0.5cm,
+)
+
+==== Sketchy Polygons (Triangles)
+
+#example(
+  [```typst
+  #ctz-canvas(length: 0.5cm, {
+    import cetz.draw: *
+    ctz-init()
+
+    // Normal triangle
+    line((0, 0), (3, 0), (1.5, 2.5), close: true, stroke: gray)
+
+    // Sketchy triangle
+    ctz-sketchy-polygon((5, 0), (8, 0), (6.5, 2.5),
+      stroke: blue, roughness: 1.0)
+  })
+  ```],
+  {
+    import cetz.draw: *
+    ctz-init()
+    line((0, 0), (3, 0), (1.5, 2.5), close: true, stroke: gray)
+    ctz-sketchy-polygon((5, 0), (8, 0), (6.5, 2.5), stroke: blue, roughness: 1.0)
+  },
+  length: 0.5cm,
+)
+
+==== Sketchy Ellipse
+
+#example(
+  [```typst
+  #ctz-canvas(length: 0.5cm, {
+    import cetz.draw: *
+    ctz-init()
+
+    ctz-sketchy-ellipse((0, 0), 2.5, 1.5,
+      angle: 20deg, stroke: purple, roughness: 1.0)
+  })
+  ```],
+  {
+    import cetz.draw: *
+    ctz-init()
+    ctz-sketchy-ellipse((0, 0), 2.5, 1.5, angle: 20deg, stroke: purple, roughness: 1.0)
+  },
+  length: 0.5cm,
+)
+
+==== Sketchy Rectangle
+
+#example(
+  [```typst
+  #ctz-canvas(length: 0.6cm, {
+    import cetz.draw: *
+    ctz-init()
+
+    ctz-sketchy-rect((-2, -1), (2, 1),
+      stroke: orange, roughness: 1.2)
+  })
+  ```],
+  {
+    import cetz.draw: *
+    ctz-init()
+    ctz-sketchy-rect((-2, -1), (2, 1), stroke: orange, roughness: 1.2)
+  },
+  length: 0.6cm,
+)
+
+==== Complete Example: Hand-Drawn Triangle
+
+#example(
+  [```typst
+  #ctz-canvas(length: 0.6cm, {
+    import cetz.draw: *
+    ctz-init()
+
+    // Define points
+    ctz-def-points(A: (0, 0), B: (4, 0), C: (2, 3))
+
+    // Sketchy triangle edges
+    ctz-sketchy-line("ctz:A", "ctz:B", stroke: blue)
+    ctz-sketchy-line("ctz:B", "ctz:C", stroke: blue)
+    ctz-sketchy-line("ctz:C", "ctz:A", stroke: blue)
+
+    // Points and labels
+    ctz-draw(points: ("A", "B", "C"),
+      labels: (A: "below left", B: "below right", C: "above"))
+  })
+  ```],
+  {
+    import cetz.draw: *
+    ctz-init()
+    ctz-def-points(A: (0, 0), B: (4, 0), C: (2, 3))
+    ctz-sketchy-line("ctz:A", "ctz:B", stroke: blue)
+    ctz-sketchy-line("ctz:B", "ctz:C", stroke: blue)
+    ctz-sketchy-line("ctz:C", "ctz:A", stroke: blue)
+    ctz-draw(points: ("A", "B", "C"), labels: (A: "below left", B: "below right", C: "above"))
+  },
+  length: 0.6cm,
+)
+
+=== Roughness Comparison
+
+The `roughness` parameter controls how "wobbly" the lines are:
+
+#example(
+  [```typst
+  #ctz-canvas(length: 0.4cm, {
+    import cetz.draw: *
+    ctz-init()
+
+    // roughness = 0.5 (subtle)
+    ctz-sketchy-circle((-4, 0), 1.5, stroke: blue, roughness: 0.5)
+    content((-4, -2.5), [roughness: 0.5])
+
+    // roughness = 1.0 (default)
+    ctz-sketchy-circle((0, 0), 1.5, stroke: red, roughness: 1.0)
+    content((0, -2.5), [roughness: 1.0])
+
+    // roughness = 2.0 (very sketchy)
+    ctz-sketchy-circle((4, 0), 1.5, stroke: green, roughness: 2.0)
+    content((4, -2.5), [roughness: 2.0])
+  })
+  ```],
+  {
+    import cetz.draw: *
+    ctz-init()
+    ctz-sketchy-circle((-4, 0), 1.5, stroke: blue, roughness: 0.5)
+    content((-4, -2.5), [roughness: 0.5])
+    ctz-sketchy-circle((0, 0), 1.5, stroke: red, roughness: 1.0)
+    content((0, -2.5), [roughness: 1.0])
+    ctz-sketchy-circle((4, 0), 1.5, stroke: green, roughness: 2.0)
+    content((4, -2.5), [roughness: 2.0])
+  },
+  length: 0.4cm,
+)
 
 === Global Main Levée Mode
 
-You can enable main-levée mode globally (affects standard drawing too when implemented):
+You can enable main-levée mode globally:
 
 ```typst
 ctz-main-levee(enabled: true, roughness: 1.5, seed: 123)
