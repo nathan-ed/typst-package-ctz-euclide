@@ -1766,9 +1766,12 @@
   let label-overrides = named.at("label-overrides", default: (:))
   let point-style = named.at("point-style", default: auto)
   let point-color = named.at("point-color", default: black)
+  let sketchy = named.at("sketchy", default: false)
+  let roughness = named.at("roughness", default: draw.default-main-levee-roughness)
+  let seed = named.at("seed", default: draw.default-main-levee-seed)
   let style = (:)
   for (k, v) in named {
-    if k not in ("points", "labels", "label-pos", "label-overrides", "point-style", "point-color") {
+    if k not in ("points", "labels", "label-pos", "label-overrides", "point-style", "point-color", "sketchy", "roughness", "seed") {
       style.insert(k, v)
     }
   }
@@ -1778,7 +1781,16 @@
     if arrows == "--" {
       arrows = none
     }
-    drawing.draw-segment(cetz.draw, _pt, points.at(i), points.at(i + 1), arrows: arrows, ..style)
+    if sketchy and arrows == none {
+      // Draw sketchy segment (no arrows support for sketchy yet)
+      cetz.draw.get-ctx(ctx => {
+        let p1 = _resolve-point(ctx, points.at(i))
+        let p2 = _resolve-point(ctx, points.at(i + 1))
+        drawing.draw-sketchy-line(cetz.draw, p1, p2, roughness: roughness, seed: seed + i, ..style)
+      })
+    } else {
+      drawing.draw-segment(cetz.draw, _pt, points.at(i), points.at(i + 1), arrows: arrows, ..style)
+    }
   }
 
   if draw-points {
@@ -1938,6 +1950,19 @@
   let pos = args.pos()
   let named = args.named()
 
+  // Extract sketchy parameters
+  let sketchy = named.at("sketchy", default: false)
+  let roughness = named.at("roughness", default: draw.default-main-levee-roughness)
+  let seed = named.at("seed", default: draw.default-main-levee-seed)
+
+  // Remove sketchy params from named args to pass to drawing functions
+  let draw-opts = (:)
+  for (k, v) in named {
+    if k not in ("sketchy", "roughness", "seed") {
+      draw-opts.insert(k, v)
+    }
+  }
+
   // Case 1: Named object (first positional arg is string)
   if pos.len() > 0 and type(pos.at(0)) == str {
     let name = pos.at(0)
@@ -1947,15 +1972,46 @@
       if obj-type == none {
         panic("Object '" + name + "' not found. No point, line, circle, polygon, or conic with this name exists.")
       } else if obj-type == "circle" {
-        _draw-circle(name, ..named)
+        if sketchy {
+          // Get circle data and draw sketchy
+          let circles = _get-circles(ctx)
+          let circ = circles.at(name)
+          drawing.draw-sketchy-circle(cetz.draw, circ.center, circ.radius, roughness: roughness, seed: seed, ..draw-opts)
+        } else {
+          _draw-circle(name, ..draw-opts)
+        }
       } else if obj-type == "conic" {
-        _draw-conic(name, ..named)
+        // Conics use sketchy ellipse when applicable
+        if sketchy {
+          let conics = _get-conics(ctx)
+          let conic = conics.at(name)
+          if conic.type == "ellipse" {
+            drawing.draw-sketchy-ellipse(cetz.draw, conic.center, conic.rx, conic.ry, angle: conic.angle, roughness: roughness, seed: seed, ..draw-opts)
+          } else {
+            _draw-conic(name, ..draw-opts)  // Parabolas not yet sketchy
+          }
+        } else {
+          _draw-conic(name, ..draw-opts)
+        }
       } else if obj-type == "line" {
-        _draw-line(name, ..named)
+        if sketchy {
+          let lines = _get-lines(ctx)
+          let line-data = lines.at(name)
+          drawing.draw-sketchy-line(cetz.draw, line-data.a, line-data.b, roughness: roughness, seed: seed, ..draw-opts)
+        } else {
+          _draw-line(name, ..draw-opts)
+        }
       } else if obj-type == "polygon" {
-        _polygon(name, ..named)
+        if sketchy {
+          let polygons = _get-polygons(ctx)
+          let poly = polygons.at(name)
+          let vertices = poly.vertices.map(v => _pt(v))
+          drawing.draw-sketchy-polygon(cetz.draw, vertices, roughness: roughness, seed: seed, close: true, ..draw-opts)
+        } else {
+          _polygon(name, ..draw-opts)
+        }
       } else if obj-type == "point" {
-        _points(name, ..named)
+        _points(name, ..draw-opts)
       }
     })
   }
@@ -1974,13 +2030,20 @@
     let line-points = named.line
     let other-opts = (:)
     for (k, v) in named {
-      if k != "line" {
+      if k not in ("line", "sketchy", "roughness", "seed") {
         other-opts.insert(k, v)
       }
     }
-    // Use draw-polygon with close: false for polylines through named points
-    other-opts.insert("close", false)
-    drawing.draw-polygon(cetz.draw, _pt, ..line-points, ..other-opts)
+    if sketchy {
+      cetz.draw.get-ctx(ctx => {
+        let vertices = line-points.map(p => _resolve-point(ctx, p))
+        drawing.draw-sketchy-polygon(cetz.draw, vertices, roughness: roughness, seed: seed, close: false, ..other-opts)
+      })
+    } else {
+      // Use draw-polygon with close: false for polylines through named points
+      other-opts.insert("close", false)
+      drawing.draw-polygon(cetz.draw, _pt, ..line-points, ..other-opts)
+    }
   }
   else if "points" in named {
     let point-names = named.points
@@ -2034,27 +2097,45 @@
     let pts = named.at("circle-through")
     let other-opts = (:)
     for (k, v) in named {
-      if k != "circle-through" {
+      if k not in ("circle-through", "sketchy", "roughness", "seed") {
         other-opts.insert(k, v)
       }
     }
-    _circle-through(pts.at(0), pts.at(1), ..other-opts)
+    if sketchy {
+      cetz.draw.get-ctx(ctx => {
+        let center = _resolve-point(ctx, pts.at(0))
+        let through = _resolve-point(ctx, pts.at(1))
+        let radius = util.dist(center, through)
+        drawing.draw-sketchy-circle(cetz.draw, center, radius, roughness: roughness, seed: seed, ..other-opts)
+      })
+    } else {
+      _circle-through(pts.at(0), pts.at(1), ..other-opts)
+    }
   }
   else if "circle-r" in named {
     let spec = named.at("circle-r")
     let other-opts = (:)
     for (k, v) in named {
-      if k != "circle-r" {
+      if k not in ("circle-r", "sketchy", "roughness", "seed") {
         other-opts.insert(k, v)
       }
     }
-    _circle-r(spec.at(0), spec.at(1), ..other-opts)
+    if sketchy {
+      cetz.draw.get-ctx(ctx => {
+        let center = _resolve-point(ctx, spec.at(0))
+        let radius = spec.at(1)
+        let r = if type(radius) == length { radius / 1cm } else { radius }
+        drawing.draw-sketchy-circle(cetz.draw, center, r, roughness: roughness, seed: seed, ..other-opts)
+      })
+    } else {
+      _circle-r(spec.at(0), spec.at(1), ..other-opts)
+    }
   }
   else if "ellipse" in named {
     let spec = named.at("ellipse")
     let other-opts = (:)
     for (k, v) in named {
-      if k != "ellipse" {
+      if k not in ("ellipse", "sketchy", "roughness", "seed") {
         other-opts.insert(k, v)
       }
     }
@@ -2090,7 +2171,11 @@
       let rx-num = if type(rx) == length { rx / 1cm } else { rx }
       let ry-num = if type(ry) == length { ry / 1cm } else { ry }
       let ang = util.to-angle(angle)
-      drawing.draw-ellipse(cetz.draw, c, rx-num, ry-num, angle: ang, steps: steps, ..other-opts)
+      if sketchy {
+        drawing.draw-sketchy-ellipse(cetz.draw, c, rx-num, ry-num, angle: ang, roughness: roughness, seed: seed, ..other-opts)
+      } else {
+        drawing.draw-ellipse(cetz.draw, c, rx-num, ry-num, angle: ang, steps: steps, ..other-opts)
+      }
     })
   }
   else if "parabola" in named {
@@ -2187,71 +2272,146 @@
     let pts = named.at("circle-diameter")
     let other-opts = (:)
     for (k, v) in named {
-      if k != "circle-diameter" {
+      if k not in ("circle-diameter", "sketchy", "roughness", "seed") {
         other-opts.insert(k, v)
       }
     }
-    _circle-diameter(pts.at(0), pts.at(1), ..other-opts)
+    if sketchy {
+      cetz.draw.get-ctx(ctx => {
+        let p1 = _resolve-point(ctx, pts.at(0))
+        let p2 = _resolve-point(ctx, pts.at(1))
+        let center = ((p1.at(0) + p2.at(0)) / 2, (p1.at(1) + p2.at(1)) / 2)
+        let radius = util.dist(p1, p2) / 2
+        drawing.draw-sketchy-circle(cetz.draw, center, radius, roughness: roughness, seed: seed, ..other-opts)
+      })
+    } else {
+      _circle-diameter(pts.at(0), pts.at(1), ..other-opts)
+    }
   }
   else if "circumcircle" in named {
     let pts = named.circumcircle
     let other-opts = (:)
     for (k, v) in named {
-      if k != "circumcircle" {
+      if k not in ("circumcircle", "sketchy", "roughness", "seed") {
         other-opts.insert(k, v)
       }
     }
-    _circumcircle(pts.at(0), pts.at(1), pts.at(2), ..other-opts)
+    if sketchy {
+      cetz.draw.get-ctx(ctx => {
+        let pa = _resolve-point(ctx, pts.at(0))
+        let pb = _resolve-point(ctx, pts.at(1))
+        let pc = _resolve-point(ctx, pts.at(2))
+        let center = triangle.circumcenter-raw(pa, pb, pc)
+        let radius = util.dist(center, pa)
+        drawing.draw-sketchy-circle(cetz.draw, center, radius, roughness: roughness, seed: seed, ..other-opts)
+      })
+    } else {
+      _circumcircle(pts.at(0), pts.at(1), pts.at(2), ..other-opts)
+    }
   }
   else if "incircle" in named {
     let pts = named.incircle
     let other-opts = (:)
     for (k, v) in named {
-      if k != "incircle" {
+      if k not in ("incircle", "sketchy", "roughness", "seed") {
         other-opts.insert(k, v)
       }
     }
-    _incircle(pts.at(0), pts.at(1), pts.at(2), ..other-opts)
+    if sketchy {
+      cetz.draw.get-ctx(ctx => {
+        let pa = _resolve-point(ctx, pts.at(0))
+        let pb = _resolve-point(ctx, pts.at(1))
+        let pc = _resolve-point(ctx, pts.at(2))
+        let center = triangle.incenter-raw(pa, pb, pc)
+        let radius = triangle.inradius-raw(pa, pb, pc)
+        drawing.draw-sketchy-circle(cetz.draw, center, radius, roughness: roughness, seed: seed, ..other-opts)
+      })
+    } else {
+      _incircle(pts.at(0), pts.at(1), pts.at(2), ..other-opts)
+    }
   }
   else if "arc" in named {
     let spec = named.arc
     let other-opts = (:)
     for (k, v) in named {
-      if k != "arc" {
+      if k not in ("arc", "sketchy", "roughness", "seed") {
         other-opts.insert(k, v)
       }
     }
-    _arc(spec.center, spec.start, spec.end, ..other-opts)
+    if sketchy {
+      cetz.draw.get-ctx(ctx => {
+        let center = _resolve-point(ctx, spec.center)
+        let start-pt = _resolve-point(ctx, spec.start)
+        let end-pt = _resolve-point(ctx, spec.end)
+        let radius = util.dist(center, start-pt)
+        let start-angle = calc.atan2(start-pt.at(1) - center.at(1), start-pt.at(0) - center.at(0))
+        let end-angle = calc.atan2(end-pt.at(1) - center.at(1), end-pt.at(0) - center.at(0))
+        drawing.draw-sketchy-arc(cetz.draw, center, radius, start-angle, end-angle, roughness: roughness, seed: seed, ..other-opts)
+      })
+    } else {
+      _arc(spec.center, spec.start, spec.end, ..other-opts)
+    }
   }
   else if "arc-r" in named {
     let spec = named.at("arc-r")
     let other-opts = (:)
     for (k, v) in named {
-      if k != "arc-r" {
+      if k not in ("arc-r", "sketchy", "roughness", "seed") {
         other-opts.insert(k, v)
       }
     }
-    _arc-r(spec.at(0), spec.at(1), spec.at(2), spec.at(3), ..other-opts)
+    if sketchy {
+      cetz.draw.get-ctx(ctx => {
+        let center = _resolve-point(ctx, spec.at(0))
+        let radius = spec.at(1)
+        let r = if type(radius) == length { radius / 1cm } else { radius }
+        let start-angle = spec.at(2)
+        let end-angle = spec.at(3)
+        drawing.draw-sketchy-arc(cetz.draw, center, r, start-angle, end-angle, roughness: roughness, seed: seed, ..other-opts)
+      })
+    } else {
+      _arc-r(spec.at(0), spec.at(1), spec.at(2), spec.at(3), ..other-opts)
+    }
   }
   else if "semicircle" in named {
     let pts = named.semicircle
     let other-opts = (:)
     for (k, v) in named {
-      if k != "semicircle" {
+      if k not in ("semicircle", "sketchy", "roughness", "seed") {
         other-opts.insert(k, v)
       }
     }
-    _semicircle(pts.at(0), pts.at(1), ..other-opts)
+    if sketchy {
+      cetz.draw.get-ctx(ctx => {
+        let p1 = _resolve-point(ctx, pts.at(0))
+        let p2 = _resolve-point(ctx, pts.at(1))
+        let center = ((p1.at(0) + p2.at(0)) / 2, (p1.at(1) + p2.at(1)) / 2)
+        let radius = util.dist(p1, p2) / 2
+        let start-angle = calc.atan2(p1.at(1) - center.at(1), p1.at(0) - center.at(0))
+        let end-angle = start-angle + 180deg
+        drawing.draw-sketchy-arc(cetz.draw, center, radius, start-angle, end-angle, roughness: roughness, seed: seed, ..other-opts)
+      })
+    } else {
+      _semicircle(pts.at(0), pts.at(1), ..other-opts)
+    }
   }
   else if "segment" in named {
     let pts = named.segment
     let other-opts = (:)
     for (k, v) in named {
-      if k != "segment" {
+      if k not in ("segment", "sketchy", "roughness", "seed") {
         other-opts.insert(k, v)
       }
     }
-    _segment(pts.at(0), pts.at(1), ..other-opts)
+    if sketchy {
+      cetz.draw.get-ctx(ctx => {
+        let p1 = _resolve-point(ctx, pts.at(0))
+        let p2 = _resolve-point(ctx, pts.at(1))
+        drawing.draw-sketchy-line(cetz.draw, p1, p2, roughness: roughness, seed: seed, ..other-opts)
+      })
+    } else {
+      _segment(pts.at(0), pts.at(1), ..other-opts)
+    }
   }
   else {
     panic("ctz-draw() requires either a named object (string) or a type parameter (path:, line:, circle-through:, etc.)")
