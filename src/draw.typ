@@ -3,6 +3,31 @@
 
 #import "util.typ"
 
+// =============================================================================
+// STYLE CONFIGURATION
+// =============================================================================
+// Modify these values to customize the default appearance of all drawings.
+// Users can change these at the top of their document after importing.
+
+/// Default stroke width for point markers (crosses, plus signs, etc.)
+#let default-point-stroke-width = 0.9pt
+
+/// Default stroke width for tick marks on segments and arcs
+#let default-mark-stroke-width = 1pt
+
+/// Default point size in canvas units (for ctz-draw points)
+#let default-point-size = 0.07
+
+/// Default point size in pt (for path markers)
+#let default-point-size-pt = 2pt
+
+/// Default smaller point size in pt (for dots, circles, squares)
+#let default-point-size-small-pt = 1.5pt
+
+// =============================================================================
+// POINT SHAPES
+// =============================================================================
+
 /// Point shape styles
 #let point-shapes = (
   dot: "dot",
@@ -14,12 +39,14 @@
   triangle: "triangle",
 )
 
-/// Default point style
+/// Default point style (canvas units)
+/// Used by draw-points-styled via global style
 #let default-point-style = (
   shape: "cross",
-  size: 0.08,
+  size: default-point-size,
   fill: black,
   stroke: black,
+  stroke-width: default-point-stroke-width,
 )
 
 /// Draw a single point with given style
@@ -33,6 +60,7 @@
   let x = pos.at(0)
   let y = pos.at(1)
   let sz = s.size
+  let sw = s.at("stroke-width", default: default-point-stroke-width)
 
   if s.shape == "dot" {
     // Filled circle
@@ -50,7 +78,7 @@
       center: (x, y),
       radius: sz,
       fill: white,
-      stroke: s.stroke,
+      stroke: s.stroke + sw,
     ),)
   } else if s.shape == "cross" {
     // X mark
@@ -58,12 +86,12 @@
       (
         type: "line",
         points: ((x - sz, y - sz), (x + sz, y + sz)),
-        stroke: s.stroke + 1.5pt,
+        stroke: s.stroke + sw,
       ),
       (
         type: "line",
         points: ((x - sz, y + sz), (x + sz, y - sz)),
-        stroke: s.stroke + 1.5pt,
+        stroke: s.stroke + sw,
       ),
     )
   } else if s.shape == "plus" {
@@ -72,12 +100,12 @@
       (
         type: "line",
         points: ((x - sz, y), (x + sz, y)),
-        stroke: s.stroke + 1.5pt,
+        stroke: s.stroke + sw,
       ),
       (
         type: "line",
         points: ((x, y - sz), (x, y + sz)),
-        stroke: s.stroke + 1.5pt,
+        stroke: s.stroke + sw,
       ),
     )
   } else if s.shape == "square" {

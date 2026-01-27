@@ -2485,6 +2485,28 @@
 /// Package version
 #let ctz-version = _version
 
+// =============================================================================
+// STYLE CONFIGURATION EXPORTS
+// =============================================================================
+// These variables control the default appearance. Users can override them:
+//   #import "@preview/ctz-euclide:0.1.5": *
+//   #let ctz-default-point-stroke-width = 1.2pt  // thicker crosses
+
+/// Default stroke width for point markers (crosses, plus signs)
+#let ctz-default-point-stroke-width = draw.default-point-stroke-width
+
+/// Default stroke width for tick marks on segments and arcs
+#let ctz-default-mark-stroke-width = draw.default-mark-stroke-width
+
+/// Default point size in canvas units
+#let ctz-default-point-size = draw.default-point-size
+
+/// Default point size in pt (for path markers)
+#let ctz-default-point-size-pt = draw.default-point-size-pt
+
+/// Default smaller point size in pt (for dots, circles, squares)
+#let ctz-default-point-size-small-pt = draw.default-point-size-small-pt
+
 /// CeTZ canvas alias
 #let ctz-canvas = _canvas
 

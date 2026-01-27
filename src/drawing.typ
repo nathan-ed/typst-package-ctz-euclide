@@ -86,15 +86,17 @@
   }
 }
 
-/// Point style presets
+/// Point style presets (used by path drawing)
+/// Sizes in pt for use with cetz relative positioning
+/// Uses variables from draw.typ for consistency
 #let point-styles = (
-  cross: (shape: "cross", size: 2.5pt),
-  dot: (shape: "dot", size: 2pt),
-  circle: (shape: "circle", size: 2pt),
-  plus: (shape: "plus", size: 2.5pt),
-  square: (shape: "square", size: 2pt),
-  diamond: (shape: "diamond", size: 2.5pt),
-  triangle: (shape: "triangle", size: 2.5pt),
+  cross: (shape: "cross", size: draw.default-point-size-pt, stroke-width: draw.default-point-stroke-width),
+  dot: (shape: "dot", size: draw.default-point-size-small-pt, stroke-width: draw.default-point-stroke-width),
+  circle: (shape: "circle", size: draw.default-point-size-small-pt, stroke-width: draw.default-point-stroke-width),
+  plus: (shape: "plus", size: draw.default-point-size-pt, stroke-width: draw.default-point-stroke-width),
+  square: (shape: "square", size: draw.default-point-size-small-pt, stroke-width: draw.default-point-stroke-width),
+  diamond: (shape: "diamond", size: draw.default-point-size-pt, stroke-width: draw.default-point-stroke-width),
+  triangle: (shape: "triangle", size: draw.default-point-size-pt, stroke-width: draw.default-point-stroke-width),
 )
 
 /// Draw a point with specified style
@@ -102,17 +104,18 @@
 #let draw-point(cetz-draw, coord, style: "cross", color: black) = {
   let s = point-styles.at(style, default: point-styles.cross)
   let sz = s.size
+  let sw = s.at("stroke-width", default: draw.default-point-stroke-width)
 
   if s.shape == "dot" {
     cetz-draw.circle(coord, radius: sz, fill: color, stroke: none)
   } else if s.shape == "circle" {
-    cetz-draw.circle(coord, radius: sz, fill: white, stroke: color + 1pt)
+    cetz-draw.circle(coord, radius: sz, fill: white, stroke: color + sw)
   } else if s.shape == "cross" {
-    cetz-draw.line((rel: (-sz, -sz), to: coord), (rel: (sz, sz), to: coord), stroke: color + 1.5pt)
-    cetz-draw.line((rel: (-sz, sz), to: coord), (rel: (sz, -sz), to: coord), stroke: color + 1.5pt)
+    cetz-draw.line((rel: (-sz, -sz), to: coord), (rel: (sz, sz), to: coord), stroke: color + sw)
+    cetz-draw.line((rel: (-sz, sz), to: coord), (rel: (sz, -sz), to: coord), stroke: color + sw)
   } else if s.shape == "plus" {
-    cetz-draw.line((rel: (-sz, 0pt), to: coord), (rel: (sz, 0pt), to: coord), stroke: color + 1.5pt)
-    cetz-draw.line((rel: (0pt, -sz), to: coord), (rel: (0pt, sz), to: coord), stroke: color + 1.5pt)
+    cetz-draw.line((rel: (-sz, 0pt), to: coord), (rel: (sz, 0pt), to: coord), stroke: color + sw)
+    cetz-draw.line((rel: (0pt, -sz), to: coord), (rel: (0pt, sz), to: coord), stroke: color + sw)
   } else if s.shape == "square" {
     cetz-draw.rect((rel: (-sz, -sz), to: coord), (rel: (sz, sz), to: coord), fill: color, stroke: none)
   } else if s.shape == "diamond" {
@@ -167,7 +170,7 @@
       let offset = (i - (count - 1) / 2) * spacing
       let cx = mx + offset * dx / len
       let cy = my + offset * dy / len
-      cetz-draw.line((cx - px, cy - py), (cx + px, cy + py), stroke: color + 1.5pt)
+      cetz-draw.line((cx - px, cy - py), (cx + px, cy + py), stroke: color + draw.default-mark-stroke-width)
     }
   })
 }
@@ -249,7 +252,7 @@
       cetz-draw.line(
         (px - size/2 * rx, py - size/2 * ry),
         (px + size/2 * rx, py + size/2 * ry),
-        stroke: color + 1.5pt
+        stroke: color + draw.default-mark-stroke-width
       )
     }
   })
@@ -379,8 +382,8 @@
 #let default-global-style = (
   point: (
     shape: "cross",
-    size: 0.09,
-    stroke: black + 0.9pt,
+    size: draw.default-point-size,
+    stroke: black + draw.default-point-stroke-width,
   ),
   angle: (
     radius: 0.6,
