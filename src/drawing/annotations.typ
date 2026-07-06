@@ -1,7 +1,7 @@
 // ctz-euclide/src/drawing/annotations.typ
 // Annotation helpers for educational diagrams (arrows, highlights, callouts)
 
-#import "@preview/cetz:0.4.2" as cetz
+#import "@preview/cetz:0.5.2" as cetz
 #import "../util.typ"
 
 // =============================================================================

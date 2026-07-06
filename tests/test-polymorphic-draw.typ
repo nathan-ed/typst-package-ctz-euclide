@@ -1,4 +1,4 @@
-#import "/src/lib.typ": *
+#import "../src/lib.typ": *
 
 #set page(width: 18cm, height: 26cm, margin: 1cm)
 

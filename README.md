@@ -1,10 +1,14 @@
 # ctz-euclide
 
-A comprehensive Euclidean geometry package for Typst, inspired by the LaTeX **tkz-euclide** package.
+[![ctz-euclide on Typst Universe](https://img.shields.io/badge/Typst_Universe-v._0.2.0-239dad?labelColor=eee)](https://typst.app/universe/package/ctz-euclide)
+[![Full package manual as PDF](https://img.shields.io/badge/Manual-pdf-333333?labelColor=eee)](https://github.com/nathan-ed/typst-package-ctz-euclide/blob/COMMIT_SHA/docs/manual.pdf)
+[![Distributed under the MIT license](https://img.shields.io/badge/License-MIT-333333?labelColor=eee)](LICENSE)
 
-> **Note:** This package is a port of the LaTeX [tkz-euclide](https://ctan.org/pkg/tkz-euclide) package. We are deeply grateful to Alain Matthes for creating the original **tkz-euclide** package, without which this Typst port would have been impossible. This package is will try to implement the complete set of features of the **tkz-euclide** package, we are not there yet.  
+A comprehensive Euclidean geometry package, inspired by the LaTeX **tkz-euclide** package.
 
-> **Development Note:** This package was coded entirely by [Claude Code Opus 4.5](https://www.anthropic.com/claude) and [Codex](https://openai.com/codex/). Nevertheless, I have spent lots of time and energy in the following feedback look : prompting, reviewing, testing and designing. Any mistakes or bugs are my own.
+> **Note:** This package is a port of the LaTeX [tkz-euclide](https://ctan.org/pkg/tkz-euclide) package. We are deeply grateful to Alain Matthes for creating the original **tkz-euclide** package, without which this Typst port would have been impossible. This package aims to implement the complete feature set of the **tkz-euclide** package; we are not there yet.  
+
+> **Development Note:** This package was coded entirely by [Claude Code Opus 4.5](https://www.anthropic.com/claude) and [Codex](https://openai.com/codex/). Nevertheless, I have spent lots of time and energy in the following feedback loop: prompting, reviewing, testing and designing. Any mistakes or bugs are my own.
 
 ## ⚠️ Early Development Status
 
@@ -18,9 +22,66 @@ This package is **by no means definitive**. Improvements and features are planne
 
 ## Dependencies
 
-- [CeTZ](https://typst.app/universe/package/cetz) v0.4.2
+- [CeTZ](https://typst.app/universe/package/cetz) v0.5.2
 
 ## Changelog
+
+### 0.2.0 - 2026-07-06
+
+#### Added
+
+- **Automatic label placement (collision avoidance), on by default**: labels
+  are placed as close as possible to the requested anchor without overlapping
+  drawn segments, circles, point markers or other labels. Labels without an
+  explicit position are fully automatic (`labels: true`). Guarantees: a label
+  is always closer to its own point than to any other point by a clear margin
+  (never reads as the neighbor's label); the font is shrunk (85%, then 70%)
+  only when *no* full-size position exists — and then all labels of the
+  figure share the same scale. Global switch `ctz-label-avoid(false)`,
+  per-label `(pos: "above", avoid: false)`, tunable via
+  `ctz-label-avoid((rings: ..., shrink: ..., assoc-factor: ...))`. Angle
+  labels slide along the bisector to stay clear.
+- **Exterior angle support** (#2): `ctz-draw-angle(..., angle-type: "reflex")`
+  (explementary) and `angle-type: "supplementary"` (exterior).
+- `ctz-def-golden(..., inside: false)` for the external golden section.
+- `ctz-def-translate` accepts a pair of point names as the vector.
+- `ctz-draw(points: ..., shape: ..., size: ..., color: ...)` style overrides.
+- `ctz-style(angle: (...))` is now honored by `ctz-draw-angle`.
+- Greek point names render as symbols in labels ("alpha" → α, "Omega1" → Ω1).
+
+#### Fixed
+
+- **Arc rendering** (#4): arcs, sectors, semicircles and compass marks were
+  drawn offset by one radius (cetz anchors arcs at their start point, not
+  their center) and with mirrored start/end angles.
+- **Systemic `calc.atan2` argument-order bug** affecting slope calculations,
+  tangent points from an external point, sector/semicircle angles, the
+  german-style right-angle mark, sloped segment labels, ellipse
+  projections/tangents and automatic label placement.
+- **cetz version conflict** (#1): upgraded to CeTZ 0.5.2 — no more conflict
+  when combining ctz-euclide with cetz-plot or your own cetz import, in any
+  import order.
+- `ctz-def-golden` crashed on every call.
+- `ctz-draw(name, sketchy: true)` crashed on named lines and polygons.
+- `ctz-def-excenter`/`ctz-def-excircle` vertex is now case-insensitive (the
+  default silently computed the excenter opposite C).
+- Feuerbach point returned the incenter instead of the tangency point.
+- Tangent points from an external point used asin instead of acos.
+- Duplicate labels for the same point (same content) are now drawn only once.
+- Labels for point names longer than 5 characters were silently dropped.
+- Grids and axes no longer drop their last line/tick to float rounding.
+- Internal module names (`util`, `draw`, `circle`, ...) are no longer leaked
+  into your document by the wildcard import (the `cetz` binding is still
+  exported on purpose, for `import cetz.draw: *`).
+- `ctz-version` is now read from typst.toml (was stuck at 0.1.0).
+
+### 0.1.5
+
+- Main-levée (hand-drawn/sketchy) style, including `sketchy: true` on `ctz-draw`
+- Global style configuration variables for colors, point shapes, sizes, and mark widths
+- Canvas-level clipping via `ctz-canvas(clip-canvas: ...)` with line/segment clipping
+- Labels now render in math font by default
+- Expanded docs and gallery examples for styling, main-levée, and clipping
 
 ### 0.1.0
 
@@ -37,65 +98,73 @@ Click on an image to see the source code.
 <table>
   <tr>
     <td align="center">
-      <a href="gallery/01-triangle-centers.typ"><img src="gallery/01-triangle-centers.png" alt="Triangle Centers" width="220"></a><br>
+      <a href="gallery/01-triangle-centers.typ"><img src="gallery/01-triangle-centers.svg" alt="Triangle with centroid, circumcenter, incenter and orthocenter on the Euler line" width="220"></a><br>
       Triangle Centers
     </td>
     <td align="center">
-      <a href="gallery/02-nine-point-circle.typ"><img src="gallery/02-nine-point-circle.png" alt="Nine-Point Circle" width="220"></a><br>
+      <a href="gallery/02-nine-point-circle.typ"><img src="gallery/02-nine-point-circle.svg" alt="Nine-point circle passing through midpoints and altitude feet of a triangle" width="220"></a><br>
       Nine-Point Circle
     </td>
     <td align="center">
-      <a href="gallery/03-pentagon.typ"><img src="gallery/03-pentagon.png" alt="Regular Pentagon" width="220"></a><br>
+      <a href="gallery/03-pentagon.typ"><img src="gallery/03-pentagon.svg" alt="Regular pentagon with all diagonals drawn in color" width="220"></a><br>
       Regular Pentagon
     </td>
   </tr>
   <tr>
     <td align="center">
-      <a href="gallery/04-inscribed-angle.typ"><img src="gallery/04-inscribed-angle.png" alt="Inscribed Angle" width="220"></a><br>
+      <a href="gallery/04-inscribed-angle.typ"><img src="gallery/04-inscribed-angle.svg" alt="Inscribed angle theorem: central angle twice the inscribed angle" width="220"></a><br>
       Inscribed Angle
     </td>
     <td align="center">
-      <a href="gallery/05-apollonius-circle.typ"><img src="gallery/05-apollonius-circle.png" alt="Apollonius Circle" width="220"></a><br>
+      <a href="gallery/05-apollonius-circle.typ"><img src="gallery/05-apollonius-circle.svg" alt="Apollonius circle as the locus of points with fixed distance ratio" width="220"></a><br>
       Apollonius Circle
     </td>
     <td align="center">
-      <a href="gallery/06-orthocenter.typ"><img src="gallery/06-orthocenter.png" alt="Orthocenter" width="220"></a><br>
+      <a href="gallery/06-orthocenter.typ"><img src="gallery/06-orthocenter.svg" alt="Triangle altitudes intersecting at the orthocenter with right-angle marks" width="220"></a><br>
       Orthocenter
     </td>
   </tr>
   <tr>
     <td align="center">
-      <a href="gallery/equilateral-triangle.typ"><img src="gallery/equilateral-triangle.png" alt="Equilateral Triangle" width="220"></a><br>
+      <a href="gallery/equilateral-triangle.typ"><img src="gallery/equilateral-triangle.svg" alt="Equilateral triangle compass-and-straightedge construction with 60 degree angles" width="220"></a><br>
       Equilateral Triangle
     </td>
     <td align="center">
-      <a href="gallery/perpendicular-bisectors.typ"><img src="gallery/perpendicular-bisectors.png" alt="Perpendicular Bisectors" width="220"></a><br>
+      <a href="gallery/perpendicular-bisectors.typ"><img src="gallery/perpendicular-bisectors.svg" alt="Perpendicular bisectors of a triangle meeting at the circumcenter" width="220"></a><br>
       Perpendicular Bisectors
     </td>
     <td align="center">
-      <a href="gallery/thales-theorem.typ"><img src="gallery/thales-theorem.png" alt="Thales' Theorem" width="220"></a><br>
+      <a href="gallery/thales-theorem.typ"><img src="gallery/thales-theorem.svg" alt="Thales theorem: right angle inscribed in a semicircle" width="220"></a><br>
       Thales' Theorem
     </td>
   </tr>
   <tr>
     <td align="center">
-      <a href="gallery/07-inversion.typ"><img src="gallery/07-inversion.png" alt="Inversion" width="220"></a><br>
+      <a href="gallery/07-inversion.typ"><img src="gallery/07-inversion.svg" alt="Circle inversion of lines and circles through a reference circle" width="220"></a><br>
       Inversion
     </td>
     <td align="center">
-      <a href="gallery/08-inversion-packing.typ"><img src="gallery/08-inversion-packing.png" alt="Inversion Packing" width="220"></a><br>
+      <a href="gallery/08-inversion-packing.typ"><img src="gallery/08-inversion-packing.svg" alt="Circle packing generated by inverting a stack of circles" width="220"></a><br>
       Inversion Packing
     </td>
     <td align="center">
-      <a href="gallery/09-inversion-ladder.typ"><img src="gallery/09-inversion-ladder.png" alt="Inversion Ladder" width="220"></a><br>
+      <a href="gallery/09-inversion-ladder.typ"><img src="gallery/09-inversion-ladder.svg" alt="Pappus chain ladder of circles built by inversion" width="220"></a><br>
       Inversion Ladder
     </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="gallery/10-label-avoidance.typ"><img src="gallery/10-label-avoidance.svg" alt="Automatic label placement avoiding lines, circles and other labels" width="220"></a><br>
+      Automatic Label Placement
+    </td>
+    <td></td>
+    <td></td>
   </tr>
 </table>
 
 ## Documentation
 
-📖 **[Complete Manual (PDF)](docs/manual.pdf)** - Comprehensive documentation with examples and gallery
+📖 **[Complete Manual (PDF)](https://github.com/nathan-ed/typst-package-ctz-euclide/blob/COMMIT_SHA/docs/manual.pdf)** - Comprehensive documentation with examples and gallery
 
 The manual includes:
 - Detailed API reference for all functions
@@ -112,19 +181,10 @@ The manual includes:
 typst compile docs/manual.typ docs/manual.pdf
 ```
 
-2) Rebuild gallery images locally:
+2) Rebuild gallery images (SVG):
 
 ```bash
-for f in gallery/*.typ; do
-  typst compile "$f" "${f%.typ}.png"
-done
-```
-
-3) Switch docs/tests back to preview imports for publishing:
-
-```bash
-./scripts/use-preview-package.sh
-find gallery -name "*.typ" -type f -exec sed -i 's|@local/ctz-euclide:0.1.0|@preview/ctz-euclide:0.1.0|g' {} \;
+./scripts/build-gallery.sh
 ```
 
 ## Contributions Welcome
@@ -138,7 +198,7 @@ Contributions, bug reports, feature requests, and feedback are warmly welcomed! 
 ## Quick Start
 
 ```typst
-#import "@preview/ctz-euclide:0.1.0": *
+#import "@preview/ctz-euclide:0.2.0": *
 
 #ctz-canvas({
   import cetz.draw: *
@@ -292,6 +352,23 @@ MIT License - see LICENSE file for details.
 
 ## Changelog
 
+### [0.1.5] - 2026-01-27
+
+#### Canvas Clipping
+- Canvas-level clipping via `ctz-canvas(clip-canvas: ...)`
+- Line/segment drawing respects canvas clip bounds (circles/shapes unchanged)
+
+#### Main-levée (Hand-drawn Style)
+- Sketchy drawing mode for lines/circles/ellipses/polygons/rects/arcs
+- `ctz-draw(..., sketchy: true)` support
+
+#### Math Labels
+- Labels now render in mathematical font by default
+
+#### Global Styling
+- Centralized, user-configurable defaults for colors, point sizes/shapes, and mark widths
+- Manual updates documenting global style configuration
+
 ### [0.1.0] - 2026-01-21
 
 #### Initial Release
@@ -304,4 +381,4 @@ MIT License - see LICENSE file for details.
 - Angle marking with customizable labels
 - Multiple point styles
 - Drawing utilities
-- Built on CeTZ v0.4.2
+- Built on CeTZ v0.5.2

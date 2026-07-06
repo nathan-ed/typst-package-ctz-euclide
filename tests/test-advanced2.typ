@@ -1,19 +1,16 @@
-#import "/src/lib.typ": *
+#import "../src/lib.typ": *
 #import "/src/conic.typ" as conic
 
 #set page(width: 18cm, height: 14cm, margin: 1cm)
 
 = Advanced Example 4
 
-#ctz-canvas(length: 1cm, {
+#ctz-canvas(length: 1cm, clip-canvas: (-4, -4, 12, 12), {
   ctz-init()
 
   let F = (0, 0)
   let p = 0.35
   let theta = 25deg
-
-  // Give the construction more breathing room.
-  ctz-set-clip(-4, -4, 12, 12)
 
   ctz-draw-parabola-focus(F, p, angle: theta, extent: 4, stroke: (paint: black, thickness: 1pt))
 

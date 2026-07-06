@@ -154,20 +154,18 @@
 })
 ```],
   length: 0.8cm,
+  clip-canvas: (-6, -7, 7, 5.5),
 )
 
 #full-figure(
   "Parabola Tangents from Circle",
   {
     import cetz.draw: *
-    import "@preview/ctz-euclide:0.1.0": *
     ctz-init()
 
     let F = (0, 0)
     let p = 0.35
     let theta = 25deg
-
-    ctz-set-clip(-4, -4, 12, 12)
 
     ctz-draw-parabola-focus(F, p, angle: theta, extent: 2.8, stroke: (paint: black, thickness: 1pt))
 
@@ -203,16 +201,14 @@
     ))
   },
   code: [```typst
-#ctz-canvas(length: 0.7cm, {
+#ctz-canvas(length: 0.7cm, clip-canvas: (-4, -4, 12, 12), {
   import cetz.draw: *
-  import "@preview/ctz-euclide:0.1.0": *
+  import "@preview/ctz-euclide:0.2.0": *
   ctz-init()
 
   let F = (0, 0)
   let p = 0.35
   let theta = 25deg
-
-  ctz-set-clip(-4, -4, 12, 12)
 
   // Draw parabola
   ctz-draw-parabola-focus(F, p, angle: theta, extent: 2.8,
@@ -252,5 +248,6 @@
   ))
 })
 ```],
+  clip-canvas: (-4, -4, 12, 12),
   length: 0.7cm,
 )

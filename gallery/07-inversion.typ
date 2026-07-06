@@ -1,12 +1,10 @@
-#import "@preview/ctz-euclide:0.1.0": *
+#import "@preview/ctz-euclide:0.2.0": *
 
 #set page(width: auto, height: auto, margin: 0.3cm)
 
-#ctz-canvas(length: 0.7cm, {
+#ctz-canvas(length: 0.7cm, clip-canvas: (-6, -5, 6, 6), {
   import cetz.draw: *
   ctz-init()
-
-  ctz-set-clip(-6, -5, 6, 6)
 
   // Inversion setup
   ctz-def-points(
@@ -27,7 +25,7 @@
   ctz-def-inversion("c2i", "c2", "O", 3)
 
   // Inversion circle
-  ctz-draw(circle-r: (_pt("O"), 3), stroke: black + 1pt)
+  ctz-draw(circle-r: ("O", 3), stroke: black + 1pt)
 
   // Original objects (light)
   ctz-draw("l1", stroke: gray + 0.7pt)

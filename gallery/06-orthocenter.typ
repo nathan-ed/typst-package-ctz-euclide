@@ -1,22 +1,21 @@
-#import "@preview/ctz-euclide:0.1.0": *
+#import "@preview/ctz-euclide:0.2.0": *
 
 #set page(width: auto, height: auto, margin: 0.3cm)
 
-#ctz-canvas(length: 0.85cm, {
+#ctz-canvas(length: 0.85cm, clip-canvas: (-1.5, -1.5, 9.5, 7), {
   import cetz.draw: *
   ctz-init()
   ctz-style(point: (shape: "cross", size: 0.1, stroke: black + 1.2pt))
   ctz-def-points(A: (0, 0), B: (8, 0), C: (2.5, 5.5))
-  ctz-set-clip(-1.5, -1.5, 9.5, 7)
   // Triangle
   ctz-draw(line: ("A", "B", "C", "A"), stroke: black + 1.5pt)
   // Extended altitudes (automatically clipped)
   ctz-def-perp("Ha1", "Ha2", ("B", "C"), "A")
   ctz-def-perp("Hb1", "Hb2", ("A", "C"), "B")
   ctz-def-perp("Hc1", "Hc2", ("A", "B"), "C")
-  ctz-draw-line-global-clip("A", "Ha1", add: (1, 1.5), stroke: blue + 1pt)
-  ctz-draw-line-global-clip("B", "Hb1", add: (1, 1.5), stroke: red + 1pt)
-  ctz-draw-line-global-clip(
+  ctz-draw-line-add("A", "Ha1", add: (1, 1.5), stroke: blue + 1pt)
+  ctz-draw-line-add("B", "Hb1", add: (1, 1.5), stroke: red + 1pt)
+  ctz-draw-line-add(
     "C",
     "Hc1",
     add: (1, 2.5),

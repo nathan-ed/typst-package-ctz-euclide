@@ -41,6 +41,12 @@
 /// Returns: (-y, x)
 #let perpendicular(v) = (-v.at(1), v.at(0))
 
+/// Angle of the vector (dx, dy), as a Typst angle.
+/// IMPORTANT: Typst's `calc.atan2(x, y)` takes x FIRST (unlike the C/math
+/// convention `atan2(y, x)`). Always use this wrapper instead of calling
+/// `calc.atan2` directly, so the argument order stays correct.
+#let angle-of(dx, dy) = calc.atan2(dx, dy)
+
 /// Check if two floats are approximately equal
 #let approx-eq(a, b, epsilon: eps) = {
   calc.abs(a - b) < epsilon
@@ -208,10 +214,11 @@
 }
 
 /// Calculate the golden ratio division point on segment AB
-/// Returns point C such that AC/CB = phi (golden ratio ≈ 1.618)
-#let golden-ratio-point(a, b) = {
+/// - inside: true  → C between A and B with AC/CB = phi (C = A + (B-A)/phi)
+/// - inside: false → C beyond B with AB/BC = phi (C = A + phi*(B-A))
+#let golden-ratio-point(a, b, inside: true) = {
   let phi = (1 + calc.sqrt(5)) / 2  // ≈ 1.618
-  let ratio = 1 / phi  // ≈ 0.618
+  let ratio = if inside { 1 / phi } else { phi }
 
   (
     a.at(0) + ratio * (b.at(0) - a.at(0)),
@@ -344,7 +351,7 @@
     return 0
   }
 
-  calc.atan2(dy, dx) / 1deg
+  angle-of(dx, dy) / 1deg
 }
 
 /// Calculate the area of triangle ABC

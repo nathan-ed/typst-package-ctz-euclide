@@ -1,11 +1,9 @@
 // ctz-euclide/src/drawing/polygons.typ
 // Polygon and shape drawing functions
 
-#import "@preview/cetz:0.4.2" as cetz
+#import "@preview/cetz:0.5.2" as cetz
 #import "../util.typ"
-
-/// Internal key for drawn line segments (for label avoidance)
-#let _drawn-lines-key = "ctz-drawn-lines"
+#import "state.typ": *
 
 // =============================================================================
 // POLYGON DRAWING
@@ -20,9 +18,9 @@
   let fill-style = style.at("fill", default: none)
   let close = style.at("close", default: true)
 
-  cetz-draw.get-ctx(ctx => {
+  draw-with-state(ctx => {
     let coords = names.map(name => {
-      let (_, c) = cetz.coordinate.resolve(ctx, pt-func(name))
+      let (ctx2, c) = cetz.coordinate.resolve(ctx, pt-func(name))
       c
     })
 
@@ -33,14 +31,12 @@
 
     // Track drawn segments for label avoidance
     if coords.len() >= 2 {
-      let drawn = ctx.shared-state.at(_drawn-lines-key, default: ())
       for i in range(0, coords.len() - 1) {
-        drawn.push((coords.at(i), coords.at(i + 1)))
+        ctx = _record-segment(ctx, coords.at(i), coords.at(i + 1))
       }
-      ctx.shared-state.insert(_drawn-lines-key, drawn)
     }
 
-    cetz-draw.line(..coords, stroke: stroke-style, fill: fill-style)
+    (ctx, cetz-draw.line(..coords, stroke: stroke-style, fill: fill-style))
   })
 }
 
@@ -76,36 +72,46 @@
 /// Draw a circle with explicit radius (R option)
 /// Usage: draw-circle-r(cetz-draw, "O", 3, stroke: black, fill: none)
 #let draw-circle-r(cetz-draw, center, radius, stroke: black, fill: none) = {
-  cetz-draw.circle(center, radius: radius, stroke: stroke, fill: fill)
+  draw-with-state(ctx => {
+    let (_, c) = cetz.coordinate.resolve(ctx, center)
+    // Register for label avoidance (skip ellipse-style (rx, ry) radii)
+    if type(radius) in (int, float, length) {
+      let r = if type(radius) == length { radius / ctx.length } else { float(radius) }
+      ctx = _record-circle(ctx, c, r)
+    }
+    (ctx, cetz-draw.circle(center, radius: radius, stroke: stroke, fill: fill))
+  })
 }
 
 /// Draw a circle through a point
 /// Usage: draw-circle-through(cetz-draw, pt, "O", "A", stroke: black)
 #let draw-circle-through(cetz-draw, pt-func, center-name, through-name, stroke: black, fill: none) = {
-  cetz-draw.get-ctx(ctx => {
+  draw-with-state(ctx => {
     let (_, c) = cetz.coordinate.resolve(ctx, pt-func(center-name))
     let (_, t) = cetz.coordinate.resolve(ctx, pt-func(through-name))
     let radius = util.dist(c, t)
-    cetz-draw.circle(c, radius: radius, stroke: stroke, fill: fill)
+    ctx = _record-circle(ctx, c, radius)
+    (ctx, cetz-draw.circle(c, radius: radius, stroke: stroke, fill: fill))
   })
 }
 
 /// Draw a circle by diameter
 /// Usage: draw-circle-diameter(cetz-draw, pt, "A", "B", stroke: black)
 #let draw-circle-diameter(cetz-draw, pt-func, p1-name, p2-name, stroke: black, fill: none) = {
-  cetz-draw.get-ctx(ctx => {
+  draw-with-state(ctx => {
     let (_, c1) = cetz.coordinate.resolve(ctx, pt-func(p1-name))
     let (_, c2) = cetz.coordinate.resolve(ctx, pt-func(p2-name))
     let center = util.midpoint(c1, c2)
     let radius = util.dist(c1, c2) / 2
-    cetz-draw.circle(center, radius: radius, stroke: stroke, fill: fill)
+    ctx = _record-circle(ctx, center, radius)
+    (ctx, cetz-draw.circle(center, radius: radius, stroke: stroke, fill: fill))
   })
 }
 
 /// Draw circumcircle of triangle
 /// Usage: draw-circumcircle(cetz-draw, pt, "A", "B", "C", stroke: black)
 #let draw-circumcircle(cetz-draw, pt-func, a-name, b-name, c-name, stroke: black, fill: none) = {
-  cetz-draw.get-ctx(ctx => {
+  draw-with-state(ctx => {
     let (_, pa) = cetz.coordinate.resolve(ctx, pt-func(a-name))
     let (_, pb) = cetz.coordinate.resolve(ctx, pt-func(b-name))
     let (_, pc) = cetz.coordinate.resolve(ctx, pt-func(c-name))
@@ -120,20 +126,21 @@
     let dy2 = pb2-p2.at(1) - pb2-p1.at(1)
 
     let denom = dx1 * dy2 - dy1 * dx2
-    if calc.abs(denom) < util.eps { return }
+    if calc.abs(denom) < util.eps { return (ctx, none) }
 
     let t = ((pb2-p1.at(0) - pb1-p1.at(0)) * dy2 - (pb2-p1.at(1) - pb1-p1.at(1)) * dx2) / denom
     let center = (pb1-p1.at(0) + t * dx1, pb1-p1.at(1) + t * dy1)
     let radius = util.dist(center, pa)
 
-    cetz-draw.circle(center, radius: radius, stroke: stroke, fill: fill)
+    ctx = _record-circle(ctx, center, radius)
+    (ctx, cetz-draw.circle(center, radius: radius, stroke: stroke, fill: fill))
   })
 }
 
 /// Draw incircle of triangle
 /// Usage: draw-incircle(cetz-draw, pt, "A", "B", "C", stroke: black)
 #let draw-incircle(cetz-draw, pt-func, a-name, b-name, c-name, stroke: black, fill: none) = {
-  cetz-draw.get-ctx(ctx => {
+  draw-with-state(ctx => {
     let (_, pa) = cetz.coordinate.resolve(ctx, pt-func(a-name))
     let (_, pb) = cetz.coordinate.resolve(ctx, pt-func(b-name))
     let (_, pc) = cetz.coordinate.resolve(ctx, pt-func(c-name))
@@ -144,7 +151,7 @@
     let lc = util.dist(pa, pb)
     let total = la + lb + lc
 
-    if total < util.eps { return }
+    if total < util.eps { return (ctx, none) }
 
     // Incenter
     let center = (
@@ -161,51 +168,57 @@
     let s = total / 2
     let radius = area / s
 
-    cetz-draw.circle(center, radius: radius, stroke: stroke, fill: fill)
+    ctx = _record-circle(ctx, center, radius)
+    (ctx, cetz-draw.circle(center, radius: radius, stroke: stroke, fill: fill))
   })
 }
 
 /// Draw a semicircle with diameter AB
 /// Usage: draw-semicircle(cetz-draw, pt, "A", "B", stroke: black, above: true)
 #let draw-semicircle(cetz-draw, pt-func, p1-name, p2-name, stroke: black, fill: none, above: true) = {
-  cetz-draw.get-ctx(ctx => {
+  draw-with-state(ctx => {
     let (_, c1) = cetz.coordinate.resolve(ctx, pt-func(p1-name))
     let (_, c2) = cetz.coordinate.resolve(ctx, pt-func(p2-name))
     let center = util.midpoint(c1, c2)
     let radius = util.dist(c1, c2) / 2
 
     // Calculate start angle from p1
-    let angle-rad = calc.atan2(c1.at(1) - center.at(1), c1.at(0) - center.at(0))
-    // calc.atan2() returns an angle type, convert to degrees
-    let start-deg = angle-rad / 1rad * 180deg / calc.pi
+    let start-deg = util.angle-of(c1.at(0) - center.at(0), c1.at(1) - center.at(1))
 
-    if above {
-      cetz-draw.arc(center, start: start-deg, stop: start-deg + 180deg, radius: radius, stroke: stroke, fill: fill)
-    } else {
-      cetz-draw.arc(center, start: start-deg, stop: start-deg - 180deg, radius: radius, stroke: stroke, fill: fill)
-    }
+    // Pick the sweep direction whose arc midpoint lies on the requested side.
+    // (For a vertical diameter both sides tie; the ccw sweep is used.)
+    let ccw-higher = calc.sin(start-deg + 90deg) >= calc.sin(start-deg - 90deg)
+    let sweep = if ccw-higher == above { 180deg } else { -180deg }
+    ctx = _record-arc-segments(ctx, center, radius, start-deg, start-deg + sweep)
+    (ctx, cetz-draw.arc(center, start: start-deg, stop: start-deg + sweep, radius: radius, anchor: "origin", stroke: stroke, fill: fill))
   })
 }
 
 /// Draw a circular sector
 /// Usage: draw-sector(cetz-draw, pt, "O", "A", "B", stroke: black, fill: blue.lighten(80%))
 #let draw-sector(cetz-draw, pt-func, center-name, start-name, end-name, stroke: black, fill: none) = {
-  cetz-draw.get-ctx(ctx => {
+  draw-with-state(ctx => {
     let (_, c) = cetz.coordinate.resolve(ctx, pt-func(center-name))
     let (_, s) = cetz.coordinate.resolve(ctx, pt-func(start-name))
     let (_, e) = cetz.coordinate.resolve(ctx, pt-func(end-name))
 
     let radius = util.dist(c, s)
-    let start-angle = calc.atan2(s.at(1) - c.at(1), s.at(0) - c.at(0))
-    let end-angle = calc.atan2(e.at(1) - c.at(1), e.at(0) - c.at(0))
+    let start-angle = util.angle-of(s.at(0) - c.at(0), s.at(1) - c.at(1))
+    let end-angle = util.angle-of(e.at(0) - c.at(0), e.at(1) - c.at(1))
 
     let start-deg = util.to-angle(if type(start-angle) == angle { start-angle / 1deg } else { start-angle * 180 / calc.pi })
     let end-deg = util.to-angle(if type(end-angle) == angle { end-angle / 1deg } else { end-angle * 180 / calc.pi })
 
+    // Track for label avoidance
+    ctx = _record-segment(ctx, c, s)
+    ctx = _record-segment(ctx, e, c)
+    ctx = _record-arc-segments(ctx, c, radius, start-deg, end-deg)
+
     // Draw arc and lines to center to form sector
-    cetz-draw.line(c, s, stroke: stroke)
-    cetz-draw.arc(c, start: start-deg, stop: end-deg, radius: radius, stroke: stroke)
-    cetz-draw.line(e, c, stroke: stroke)
+    let elements = ()
+    elements += cetz-draw.line(c, s, stroke: stroke)
+    elements += cetz-draw.arc(c, start: start-deg, stop: end-deg, radius: radius, anchor: "origin", stroke: stroke)
+    elements += cetz-draw.line(e, c, stroke: stroke)
 
     // Fill if requested - draw filled arc sector
     if fill != none {
@@ -217,7 +230,8 @@
         let angle = start-deg + angle-diff * i / n-steps
         points.push((c.at(0) + radius * calc.cos(angle), c.at(1) + radius * calc.sin(angle)))
       }
-      cetz-draw.line(..points, close: true, fill: fill, stroke: none)
+      elements += cetz-draw.line(..points, close: true, fill: fill, stroke: none)
     }
+    (ctx, elements)
   })
 }

@@ -13,7 +13,13 @@
 - `ctz-def-regular-polygon([name,] names, center, first)` — Regular n-gon vertices (optionally register polygon name)
 - `ctz-def-point-on-circle(name, center, radius, angle)` — Point on circle at angle
 - `ctz-def-equilateral(name, a, b)` — Third vertex of equilateral triangle
-- `ctz-def-golden(name, a, b)` — Golden ratio point
+- `ctz-def-golden(name, a, b, inside: true)` — Golden ratio point (`inside: false` for the external section)
+- `ctz-def-square(nc, nd, a, b)` — Third and fourth vertices of square ABCD
+- `ctz-def-barycentric(name, a, b, c, wa, wb, wc)` — Barycentric combination point
+- `ctz-def-symmetry(name, source, center)` — Central symmetry image
+- `ctz-def-tangent-from(n1, n2, point, center, radius)` — Tangent points from external point to circle
+- `ctz-def-radical-axis(n1, n2, circle1, circle2)` — Two points on the radical axis of two circles
+- `ctz-pt(name)` / `ctz-pts(..)` — Aliases: point-name coordinate helper / `ctz-def-points`
 
 == Line Constructions
 - `ctz-def-perp(n1, n2, line, through)` — Perpendicular through point
@@ -65,12 +71,62 @@
 - `ctz-label-polygon(name, label, ...)` — Label named polygon
 - `ctz-draw-circumcircle(a, b, c, ...)` — Circumscribed circle
 - `ctz-draw-incircle(a, b, c, ...)` — Inscribed circle
+- `ctz-draw-circle-r(center, radius, ...)` — Circle by center and radius
+- `ctz-draw-circle-through(center, through, ...)` — Circle by center and a point on it
+- `ctz-draw-circle-diameter(a, b, ...)` — Circle by diameter endpoints
+- `ctz-draw-semicircle(a, b, above: true, ...)` — Semicircle on diameter AB
+- `ctz-draw-arc(center, start, end, ...)` — Arc around a center between two points
+- `ctz-draw-arc-r(center, radius, start-angle, end-angle, ...)` — Arc by radius and angles
+- `ctz-draw-sector(center, start, end, fill: ..., ...)` — Circular sector
+- `ctz-draw-ellipse(center, rx, ry, angle: ..., ...)` — Ellipse
+- `ctz-draw-projectile(origin, velocity, ...)` — Projectile trajectory
+- `ctz-draw-ellipse-tangent(center, rx, ry, t, ...)` — Tangent to ellipse at parameter t
+- `ctz-draw-parabola-tangent(focus, directrix, t, ...)` — Tangent to parabola at parameter t
+- `ctz-draw-parabola-tangents-from-point(focus, directrix, p, ...)` — Parabola tangents from a point
+- `ctz-draw-label-segment(a, b, label: ..., ...)` — Text label on a segment
+- `ctz-draw-label-angle(vertex, a, c, label: ..., ...)` — Text label inside an angle
+- `ctz-draw-text(x, y, content, ...)` — Free text at coordinates
+- `ctz-draw-hline(y, ...)` / `ctz-draw-vline(x, ...)` — Horizontal/vertical guide line
+- `ctz-draw-axis-x(...)` / `ctz-draw-axis-y(...)` — Single axis with ticks and labels
+- `ctz-points(..)` — Alias of `ctz-draw-points`
+- `ctz-label-avoid(setting)` — Enable/disable/configure automatic label placement
+- `ctz-main-levee(enabled: true, roughness: ..., seed: ...)` — Toggle hand-drawn mode globally
 
 == Clipping
-- `ctz-set-clip(xmin, ymin, xmax, ymax)` — Set clip region
-- `ctz-clear-clip()` — Clear clip region
-- `ctz-draw-line-global-clip(a, b, ...)` — Draw clipped line
-- `ctz-draw-seg-global-clip(a, b, ...)` — Draw clipped segment
+- `ctz-canvas(clip-canvas: ...)` — Set clip bounds for the canvas
+- `ctz-set-clip(xmin, ymin, xmax, ymax)` / `ctz-clear-clip()` — Set/clear the global clip region
+- `ctz-show-clip(...)` — Draw the clip boundary
+- `ctz-draw-line-add(a, b, ...)` — Extended line (respects clip bounds)
+- `ctz-draw-segment(a, b, ...)` — Segment (respects clip bounds)
+- `ctz-draw-line-global-clip(a, b, ...)` / `ctz-draw-seg-global-clip(a, b, ...)` — Explicitly clipped line/segment
+- `ctz-draw-clipped-line(p1, p2, bounds...)` / `ctz-draw-clipped-line-add(a, b, bounds..., add: ...)` — Clip to manual bounds
+- `ctz-draw-clip-boundary(bounds..., ...)` — Draw a manual clip rectangle
+- `ctz-clip-line-to-rect(x0, y0, x1, y1, bounds...)` — Raw Cohen–Sutherland clipping (returns endpoints or `none`)
+
+== Calculations & Raw Utilities
+- `ctz-calc-length(a, b)` / `ctz-calc-angle(a, b, c)` / `ctz-calc-area(a, b, c)` /
+  `ctz-calc-slope(a, b)` / `ctz-calc-ratio(a, b, c)` — Measurements returned via the canvas context
+- `ctz-algorithms` — Dictionary of all raw (context-free) algorithms; call as `(ctz-algorithms.dist)(p, q)`
+- `ctz-dist(a, b)` — Distance between raw coordinates
+- `ctz-angle-to(a, b)` — Direction angle from a to b
+- `ctz-midpoint-raw(a, b)` — Midpoint of raw coordinates
+- `ctz-project-point-on-line(p, a, b)` — Foot of the perpendicular from p onto line ab
+- `ctz-rotate-point(p, center, angle)` — Rotate a raw coordinate
+- `ctz-version` — Package version as an (major, minor, patch) array
+
+== Style Constants
+Read-only defaults, overridable per canvas via `ctz-style(..)`:
+`ctz-default-point-shape`, `ctz-default-point-size`, `ctz-default-point-size-pt`,
+`ctz-default-point-size-small-pt`, `ctz-default-point-color`,
+`ctz-default-point-stroke-width`, `ctz-default-line-color`,
+`ctz-default-mark-color`, `ctz-default-mark-stroke-width`,
+`ctz-default-main-levee`, `ctz-default-main-levee-roughness`,
+`ctz-default-main-levee-seed`, `ctz-default-clip-canvas`.
+
+== Advanced Ellipse Constructions
+- `ctz-def-ellipse-project(name, center, rx, ry, point, ...)` — Project a point onto an ellipse
+- `ctz-ellipse-tangency-geom(a, b)` / `ctz-draw-ellipse-tangency(a, b)` — Full ellipse/circles tangency construction
+- `ctz-ellipse-tangent-from-point-towards(...)` / `ctz-draw-ellipse-tangent-from-point-towards(...)` — Directed tangent selection
 
 == Grid Positioning
 - `triangular-pos(row, col, ...)` — Position in triangular grid (Pascal layout)
@@ -96,4 +152,3 @@
 - `draw-brace-v(cetz-draw, start, end, ...)` — Vertical brace
 
 #pagebreak()
-

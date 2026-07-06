@@ -1,8 +1,9 @@
 // ctz-euclide/src/drawing/clipping.typ
 // Line clipping functions (Cohen-Sutherland algorithm)
 
-#import "@preview/cetz:0.4.2" as cetz
+#import "@preview/cetz:0.5.2" as cetz
 #import "../util.typ"
+#import "state.typ": *
 
 // =============================================================================
 // CLIP REGION STATE
@@ -135,16 +136,16 @@
 /// Draw a line clipped to a rectangle boundary
 /// Usage: draw-clipped-line(cetz-draw, p1, p2, xmin, ymin, xmax, ymax, stroke: blue)
 #let draw-clipped-line(cetz-draw, p1, p2, xmin, ymin, xmax, ymax, stroke: black) = {
-  cetz-draw.get-ctx(ctx => {
+  draw-with-state(ctx => {
     let (_, c1) = cetz.coordinate.resolve(ctx, p1)
     let (_, c2) = cetz.coordinate.resolve(ctx, p2)
 
     let result = clip-line-to-rect(c1.at(0), c1.at(1), c2.at(0), c2.at(1), xmin, ymin, xmax, ymax)
 
-    if result != none {
-      let ((x0, y0), (x1, y1)) = result
-      cetz-draw.line((x0, y0), (x1, y1), stroke: stroke)
-    }
+    if result == none { return (ctx, none) }
+    let ((x0, y0), (x1, y1)) = result
+    ctx = _record-segment(ctx, (x0, y0), (x1, y1))
+    (ctx, cetz-draw.line((x0, y0), (x1, y1), stroke: stroke))
   })
 }
 
@@ -152,7 +153,7 @@
 /// This is the main function for drawing "infinite" lines that are clipped to the canvas
 /// Usage: draw-clipped-line-add(cetz-draw, pt-func, p1-name, p2-name, bounds, add: (10, 10), stroke: black)
 #let draw-clipped-line-add(cetz-draw, pt-func, p1-name, p2-name, xmin, ymin, xmax, ymax, add: (10, 10), stroke: black) = {
-  cetz-draw.get-ctx(ctx => {
+  draw-with-state(ctx => {
     let (_, c1) = cetz.coordinate.resolve(ctx, pt-func(p1-name))
     let (_, c2) = cetz.coordinate.resolve(ctx, pt-func(p2-name))
 
@@ -160,7 +161,7 @@
     let dy = c2.at(1) - c1.at(1)
     let len = calc.sqrt(dx*dx + dy*dy)
 
-    if len < util.eps-visual { return }
+    if len < util.eps-visual { return (ctx, none) }
 
     // Normalize direction
     let ux = dx / len
@@ -178,10 +179,10 @@
     // Clip to rectangle
     let result = clip-line-to-rect(x0, y0, x1, y1, xmin, ymin, xmax, ymax)
 
-    if result != none {
-      let ((cx0, cy0), (cx1, cy1)) = result
-      cetz-draw.line((cx0, cy0), (cx1, cy1), stroke: stroke)
-    }
+    if result == none { return (ctx, none) }
+    let ((cx0, cy0), (cx1, cy1)) = result
+    ctx = _record-segment(ctx, (cx0, cy0), (cx1, cy1))
+    (ctx, cetz-draw.line((cx0, cy0), (cx1, cy1), stroke: stroke))
   })
 }
 
@@ -204,7 +205,7 @@
 /// This is the main function for drawing "infinite" lines that are automatically clipped
 /// Usage: draw-line-global-clip(cetz-draw, pt-func, p1-name, p2-name, add: (10, 10), stroke: black)
 #let draw-line-global-clip(cetz-draw, pt-func, p1-name, p2-name, add: (10, 10), stroke: black) = {
-  cetz-draw.get-ctx(ctx => {
+  draw-with-state(ctx => {
     let clip = get-clip-region(ctx)
     if clip == none {
       // No clip region set, draw unclipped extended line
@@ -219,7 +220,8 @@
       let start = (c1.at(0) - add-before * dx, c1.at(1) - add-before * dy)
       let end = (c2.at(0) + add-after * dx, c2.at(1) + add-after * dy)
 
-      cetz-draw.line(start, end, stroke: stroke)
+      ctx = _record-segment(ctx, start, end)
+      return (ctx, cetz-draw.line(start, end, stroke: stroke))
     } else {
       // Use the global clip region
       let (_, c1) = cetz.coordinate.resolve(ctx, pt-func(p1-name))
@@ -229,7 +231,7 @@
       let dy = c2.at(1) - c1.at(1)
       let len = calc.sqrt(dx*dx + dy*dy)
 
-      if len < util.eps-visual { return }
+      if len < util.eps-visual { return (ctx, none) }
 
       let ux = dx / len
       let uy = dy / len
@@ -244,29 +246,29 @@
 
       let result = clip-line-to-rect(x0, y0, x1, y1, clip.xmin, clip.ymin, clip.xmax, clip.ymax)
 
-      if result != none {
-        let ((cx0, cy0), (cx1, cy1)) = result
-        cetz-draw.line((cx0, cy0), (cx1, cy1), stroke: stroke)
-      }
+      if result == none { return (ctx, none) }
+      let ((cx0, cy0), (cx1, cy1)) = result
+      ctx = _record-segment(ctx, (cx0, cy0), (cx1, cy1))
+      return (ctx, cetz-draw.line((cx0, cy0), (cx1, cy1), stroke: stroke))
     }
   })
 }
 
 /// Draw a simple segment using global clip region if set
 #let draw-segment-global-clip(cetz-draw, pt-func, p1-name, p2-name, stroke: black) = {
-  cetz-draw.get-ctx(ctx => {
+  draw-with-state(ctx => {
     let clip = get-clip-region(ctx)
     let (_, c1) = cetz.coordinate.resolve(ctx, pt-func(p1-name))
     let (_, c2) = cetz.coordinate.resolve(ctx, pt-func(p2-name))
 
     if clip == none {
-      cetz-draw.line(c1, c2, stroke: stroke)
-    } else {
-      let result = clip-line-to-rect(c1.at(0), c1.at(1), c2.at(0), c2.at(1), clip.xmin, clip.ymin, clip.xmax, clip.ymax)
-      if result != none {
-        let ((x0, y0), (x1, y1)) = result
-        cetz-draw.line((x0, y0), (x1, y1), stroke: stroke)
-      }
+      ctx = _record-segment(ctx, c1, c2)
+      return (ctx, cetz-draw.line(c1, c2, stroke: stroke))
     }
+    let result = clip-line-to-rect(c1.at(0), c1.at(1), c2.at(0), c2.at(1), clip.xmin, clip.ymin, clip.xmax, clip.ymax)
+    if result == none { return (ctx, none) }
+    let ((x0, y0), (x1, y1)) = result
+    ctx = _record-segment(ctx, (x0, y0), (x1, y1))
+    (ctx, cetz-draw.line((x0, y0), (x1, y1), stroke: stroke))
   })
 }

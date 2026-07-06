@@ -2,18 +2,21 @@
 // High-level drawing functions that work directly with cetz.draw
 // Re-exports from submodules plus main orchestration code
 
-#import "@preview/cetz:0.4.2" as cetz
+#import "@preview/cetz:0.5.2" as cetz
 #import "util.typ"
 #import "draw.typ"
 #import "conic.typ"
 
-// Import and re-export from submodules
+// Import and re-export from submodules (single source of truth — the
+// functions in these files must not be redefined here)
+#import "drawing/state.typ": *
 #import "drawing/clipping.typ": *
-#import "drawing/primitives.typ": point-styles
-#import "drawing/labels.typ": compute-auto-label-position, _direction-angle, _normalize-angle
-#import "drawing/polygons.typ": _drawn-lines-key
+#import "drawing/primitives.typ": *
+#import "drawing/labels.typ": *
+#import "drawing/polygons.typ": *
 #import "drawing/grids.typ": *
 #import "drawing/annotations.typ": *
+
 
 // =============================================================================
 // MAIN LEVÉE (HAND-DRAWN STYLE) DRAWING FUNCTIONS
@@ -148,251 +151,11 @@
 }
 
 // =============================================================================
-// SMART LABEL POSITIONING
-// =============================================================================
 
-/// The 8 standard label positions with their angular directions (in degrees)
-/// Angle 0 = right, 90 = above, 180 = left, 270 = below
-#let _label-positions = (
-  (name: "right", angle: 0),
-  (name: "above right", angle: 45),
-  (name: "above", angle: 90),
-  (name: "above left", angle: 135),
-  (name: "left", angle: 180),
-  (name: "below left", angle: 225),
-  (name: "below", angle: 270),
-  (name: "below right", angle: 315),
-)
-
-/// Normalize angle to [0, 360)
-#let _normalize-angle(a) = {
-  let result = calc.rem(a, 360)
-  if result < 0 { result + 360 } else { result }
-}
-
-/// Compute angular distance between two angles (in degrees), result in [0, 180]
-#let _angular-distance(a1, a2) = {
-  let diff = calc.abs(_normalize-angle(a1) - _normalize-angle(a2))
-  if diff > 180 { 360 - diff } else { diff }
-}
-
-/// Compute the optimal label position given a list of "avoid" directions (angles in degrees)
-/// Returns one of the 8 standard position names
-#let compute-auto-label-position(avoid-angles) = {
-  if avoid-angles.len() == 0 {
-    return "above right"  // Default when nothing to avoid
-  }
-
-  // For each candidate position, compute the minimum distance to any avoid angle
-  let best-pos = "above right"
-  let best-score = -1
-
-  for pos in _label-positions {
-    let min-dist = 180  // Start with max possible
-    for avoid in avoid-angles {
-      let dist = _angular-distance(pos.angle, avoid)
-      if dist < min-dist {
-        min-dist = dist
-      }
-    }
-    // Higher min-dist is better (farther from all avoid angles)
-    if min-dist > best-score {
-      best-score = min-dist
-      best-pos = pos.name
-    }
-  }
-
-  best-pos
-}
-
-/// Compute the angle (in degrees) from point p1 to point p2
-#let _direction-angle(p1, p2) = {
-  let dx = p2.at(0) - p1.at(0)
-  let dy = p2.at(1) - p1.at(1)
-  let angle-rad = calc.atan2(dy, dx)
-  // Convert to degrees, atan2 returns angle type in Typst
-  if type(angle-rad) == angle {
-    angle-rad / 1deg
-  } else {
-    angle-rad * 180 / calc.pi
-  }
-}
-
-/// Point style presets (used by path drawing)
-/// Sizes in pt for use with cetz relative positioning
-/// Uses variables from draw.typ for consistency
-#let point-styles = (
-  cross: (shape: "cross", size: draw.default-point-size-pt, stroke-width: draw.default-point-stroke-width),
-  dot: (shape: "dot", size: draw.default-point-size-small-pt, stroke-width: draw.default-point-stroke-width),
-  circle: (shape: "circle", size: draw.default-point-size-small-pt, stroke-width: draw.default-point-stroke-width),
-  plus: (shape: "plus", size: draw.default-point-size-pt, stroke-width: draw.default-point-stroke-width),
-  square: (shape: "square", size: draw.default-point-size-small-pt, stroke-width: draw.default-point-stroke-width),
-  diamond: (shape: "diamond", size: draw.default-point-size-pt, stroke-width: draw.default-point-stroke-width),
-  triangle: (shape: "triangle", size: draw.default-point-size-pt, stroke-width: draw.default-point-stroke-width),
-)
-
-/// Draw a point with specified style
-/// Usage: draw-point(cetz-draw, "ctz:A", style: "cross")
-#let draw-point(cetz-draw, coord, style: draw.default-point-shape, color: draw.default-point-color) = {
-  let s = point-styles.at(style, default: point-styles.at(draw.default-point-shape))
-  let sz = s.size
-  let sw = s.at("stroke-width", default: draw.default-point-stroke-width)
-
-  if s.shape == "dot" {
-    cetz-draw.circle(coord, radius: sz, fill: color, stroke: none)
-  } else if s.shape == "circle" {
-    cetz-draw.circle(coord, radius: sz, fill: white, stroke: color + sw)
-  } else if s.shape == "cross" {
-    cetz-draw.line((rel: (-sz, -sz), to: coord), (rel: (sz, sz), to: coord), stroke: color + sw)
-    cetz-draw.line((rel: (-sz, sz), to: coord), (rel: (sz, -sz), to: coord), stroke: color + sw)
-  } else if s.shape == "plus" {
-    cetz-draw.line((rel: (-sz, 0pt), to: coord), (rel: (sz, 0pt), to: coord), stroke: color + sw)
-    cetz-draw.line((rel: (0pt, -sz), to: coord), (rel: (0pt, sz), to: coord), stroke: color + sw)
-  } else if s.shape == "square" {
-    cetz-draw.rect((rel: (-sz, -sz), to: coord), (rel: (sz, sz), to: coord), fill: color, stroke: none)
-  } else if s.shape == "diamond" {
-    cetz-draw.line(
-      (rel: (0pt, sz), to: coord),
-      (rel: (sz, 0pt), to: coord),
-      (rel: (0pt, -sz), to: coord),
-      (rel: (-sz, 0pt), to: coord),
-      close: true, fill: color, stroke: none
-    )
-  } else if s.shape == "triangle" {
-    cetz-draw.line(
-      (rel: (0pt, sz), to: coord),
-      (rel: (sz * 0.866, -sz * 0.5), to: coord),
-      (rel: (-sz * 0.866, -sz * 0.5), to: coord),
-      close: true, fill: color, stroke: none
-    )
-  }
-}
-
-/// Draw multiple points
-#let draw-points(cetz-draw, pt-func, ..names, style: draw.default-point-shape, color: draw.default-point-color) = {
-  for name in names.pos() {
-    draw-point(cetz-draw, pt-func(name), style: style, color: color)
-  }
-}
-
-/// Draw segment tick marks (for indicating equal lengths)
-/// count: 1 = |, 2 = ||, 3 = |||
-#let draw-segment-mark(cetz-draw, p1, p2, count: 1, size: 0.15, color: draw.default-mark-color) = {
-  // This needs raw coordinates, so we use a get-ctx approach
-  cetz-draw.get-ctx(ctx => {
-    // Resolve coordinates
-    let (_, c1) = cetz.coordinate.resolve(ctx, p1)
-    let (_, c2) = cetz.coordinate.resolve(ctx, p2)
-
-    let mx = (c1.at(0) + c2.at(0)) / 2
-    let my = (c1.at(1) + c2.at(1)) / 2
-    let dx = c2.at(0) - c1.at(0)
-    let dy = c2.at(1) - c1.at(1)
-    let len = calc.sqrt(dx*dx + dy*dy)
-
-    if len < 0.001 { return }
-
-    // Perpendicular direction
-    let px = -dy / len * size
-    let py = dx / len * size
-
-    // Draw ticks
-    let spacing = size * 2.4
-    for i in range(count) {
-      let offset = (i - (count - 1) / 2) * spacing
-      let cx = mx + offset * dx / len
-      let cy = my + offset * dy / len
-      cetz-draw.line((cx - px, cy - py), (cx + px, cy + py), stroke: color + draw.default-mark-stroke-width)
-    }
-  })
-}
-
-/// Draw a compass arc (construction arc showing equal distances)
-#let draw-compass(cetz-draw, center, through, delta: 60, color: gray, stroke-width: 0.5pt) = {
-  cetz-draw.get-ctx(ctx => {
-    let (_, c) = cetz.coordinate.resolve(ctx, center)
-    let (_, t) = cetz.coordinate.resolve(ctx, through)
-
-    let radius = util.dist(c, t)
-    let theta = calc.atan2(t.at(1) - c.at(1), t.at(0) - c.at(0))
-
-    // Convert to an angle value (Typst angle type) if needed.
-    // `calc.atan2` may return either an angle or a unitless number (radians).
-    let theta-angle = if type(theta) == angle { theta } else { theta * 180 / calc.pi * 1deg }
-
-    let half-delta = delta / 2 * 1deg
-    cetz-draw.arc(
-      center,
-      start: theta-angle - half-delta,
-      stop: theta-angle + half-delta,
-      radius: radius,
-      stroke: color + stroke-width
-    )
-  })
-}
-
-/// Label a point with automatic positioning
-/// pos can be: "above", "below", "left", "right", "above left", etc.
-#let label-point(cetz-draw, coord, label, pos: "above", dist: 0.2) = {
-  let anchor = draw.ctz-pos-to-anchor(pos)
-  cetz-draw.content(coord, label, anchor: anchor, padding: dist)
-}
-
-/// Label multiple points with their names
-#let label-points(cetz-draw, pt-func, ..args, pos: "above", dist: 0.15) = {
-  let names = args.pos()
-  let positions = args.named()
-
-  for name in names {
-    let p = positions.at(name, default: pos)
-    label-point(cetz-draw, pt-func(name), [$#name$], pos: p, dist: dist)
-  }
-}
-
-/// Draw arc tick mark (for equal arcs)
-#let draw-arc-mark(cetz-draw, center, start-pt, end-pt, count: 1, size: 0.2, color: draw.default-mark-color) = {
-  cetz-draw.get-ctx(ctx => {
-    let (_, c) = cetz.coordinate.resolve(ctx, center)
-    let (_, s) = cetz.coordinate.resolve(ctx, start-pt)
-    let (_, e) = cetz.coordinate.resolve(ctx, end-pt)
-
-    let radius = util.dist(c, s)
-    let start-angle = calc.atan2(s.at(1) - c.at(1), s.at(0) - c.at(0))
-    let end-angle = calc.atan2(e.at(1) - c.at(1), e.at(0) - c.at(0))
-
-    // Convert to degrees
-    let to-deg(a) = if type(a) == angle { a / 1deg } else { a * 180 / calc.pi }
-    let start-deg = to-deg(start-angle)
-    let end-deg = to-deg(end-angle)
-
-    // Normalize angles
-    if end-deg < start-deg { end-deg = end-deg + 360 }
-
-    let mid-deg = (start-deg + end-deg) / 2
-    let spacing = 3  // degrees
-
-    for i in range(count) {
-      let offset = (i - (count - 1) / 2) * spacing
-      let angle-deg = mid-deg + offset
-      let angle-rad = angle-deg * calc.pi / 180
-
-      let px = c.at(0) + radius * calc.cos(angle-rad)
-      let py = c.at(1) + radius * calc.sin(angle-rad)
-      let rx = calc.cos(angle-rad)
-      let ry = calc.sin(angle-rad)
-
-      cetz-draw.line(
-        (px - size/2 * rx, py - size/2 * ry),
-        (px + size/2 * rx, py + size/2 * ry),
-        stroke: color + draw.default-mark-stroke-width
-      )
-    }
-  })
-}
 
 /// Draw an extended line (beyond the two points)
 #let draw-line-extended(cetz-draw, p1, p2, extend-before: 0.5, extend-after: 0.5, ..style) = {
-  cetz-draw.get-ctx(ctx => {
+  draw-with-state(ctx => {
     let (_, c1) = cetz.coordinate.resolve(ctx, p1)
     let (_, c2) = cetz.coordinate.resolve(ctx, p2)
 
@@ -402,113 +165,13 @@
     let start = (c1.at(0) - extend-before * dx, c1.at(1) - extend-before * dy)
     let end = (c2.at(0) + extend-after * dx, c2.at(1) + extend-after * dy)
 
-    let drawn = ctx.shared-state.at(_drawn-lines-key, default: ())
-    drawn.push((start, end))
-    ctx.shared-state.insert(_drawn-lines-key, drawn)
-
-    cetz-draw.line(start, end, ..style)
+    ctx = _record-segment(ctx, start, end)
+    (ctx, cetz-draw.line(start, end, ..style))
   })
-}
-
-/// Mark an angle with arc and label, with smart label positioning
-/// - vertex: the vertex of the angle (where the arc is drawn)
-/// - a, b: the two rays endpoints (angle is measured from a to b counterclockwise)
-/// - label: the label content (e.g., $alpha$ or $30°$)
-/// - radius: arc radius (default 0.6)
-/// - label-radius: distance from vertex to label center along bisector (default: radius + 0.2)
-/// - label-offset: (along, perp) offset relative to bisector direction (default: (0, 0))
-///   - along: moves label along bisector (negative = closer to vertex, positive = farther)
-///   - perp: moves label perpendicular to bisector (positive = counterclockwise, negative = clockwise)
-/// - direction: "ccw" (counter-clockwise) or "cw" (clockwise)
-/// - stroke: arc stroke style
-/// - fill: arc fill color
-#let mark-angle(
-  cetz-draw,
-  cetz-angle,
-  vertex,
-  a,
-  b,
-  label: none,
-  radius: 0.6,
-  label-radius: auto,
-  label-offset: (0, 0),
-  direction: auto,
-  stroke: black,
-  fill: none,
-  name: none,
-) = {
-  cetz-draw.get-ctx(ctx => {
-    // Determine direction if set to auto
-    let final-direction = direction
-    if direction == auto {
-      let (_, v) = cetz.coordinate.resolve(ctx, vertex)
-      let (_, pa) = cetz.coordinate.resolve(ctx, a)
-      let (_, pb) = cetz.coordinate.resolve(ctx, b)
-
-      // Vectors from vertex to the two points
-      let va = (pa.at(0) - v.at(0), pa.at(1) - v.at(1))
-      let vb = (pb.at(0) - v.at(0), pb.at(1) - v.at(1))
-
-      // Cross product: if positive, ccw angle from a to b is < 180°
-      // if negative, ccw angle from a to b is > 180°, so use cw instead
-      let cross = va.at(0) * vb.at(1) - va.at(1) * vb.at(0)
-
-      // Draw the smaller (interior) angle:
-      // - If cross >= 0, the ccw angle is smaller, so use "ccw"
-      // - If cross < 0, the cw angle is smaller, so use "cw"
-      final-direction = if cross >= 0 { "ccw" } else { "cw" }
-    }
-
-    // Draw the angle arc using cetz.angle on the background layer
-    cetz.draw.on-layer(-1, {
-      cetz-angle.angle(
-        vertex, a, b,
-        radius: radius,
-        direction: final-direction,
-        stroke: stroke,
-        fill: fill,
-        name: name,
-        label: none,  // We handle label ourselves
-      )
-    })
-  })
-
-  // If there's a label, position it along the angle bisector
-  if label != none {
-    cetz-draw.get-ctx(ctx => {
-      let (_, v) = cetz.coordinate.resolve(ctx, vertex)
-      let (_, pa) = cetz.coordinate.resolve(ctx, a)
-      let (_, pb) = cetz.coordinate.resolve(ctx, b)
-
-      // Use the angle bisector direction - this reliably points toward
-      // the interior of the angle (the smaller arc)
-      let bisector = draw.angle-bisector-direction(pa, v, pb)
-
-      // Perpendicular to bisector (rotated 90° counterclockwise)
-      let perp = (-bisector.at(1), bisector.at(0))
-
-      // Place label along bisector direction from vertex
-      let lr = if label-radius == auto { radius + 0.3 } else { label-radius }
-
-      // Apply offsets relative to bisector coordinate system
-      // label-offset.at(0) = along bisector, label-offset.at(1) = perpendicular
-      let along-offset = label-offset.at(0)
-      let perp-offset = label-offset.at(1)
-
-      let label-x = v.at(0) + (lr + along-offset) * bisector.at(0) + perp-offset * perp.at(0)
-      let label-y = v.at(1) + (lr + along-offset) * bisector.at(1) + perp-offset * perp.at(1)
-
-      cetz-draw.content((label-x, label-y), label)
-    })
-  }
 }
 
 /// Global style configuration key
 #let _global-style-key = "ctz-global-style"
-/// Internal key for placed labels (collision avoidance)
-#let _label-placed-key = "ctz-label-placed"
-/// Internal key for drawn line segments (for label avoidance)
-#let _drawn-lines-key = "ctz-drawn-lines"
 
 /// Default global style
 #let default-global-style = (
@@ -527,6 +190,10 @@
     padding: 0.15,
     single-padding: 0.25,
     explicit-padding: 0.45,
+    // Collision avoidance: true/false, or a dict overriding any of the
+    // defaults in _resolve-avoid-cfg (ring-step:, rings:, shrink:, margin:,
+    // weights:). Example: ctz-style(label: (avoid: (shrink: ())))
+    avoid: true,
   ),
 )
 
@@ -555,13 +222,198 @@
   ctx.shared-state.at(_global-style-key, default: default-global-style)
 }
 
+/// Resolve the label-avoidance configuration from the global style.
+/// Distances given as Typst lengths are converted to canvas units (so the
+/// visual spacing is canvas-scale independent); plain numbers are canvas units.
+#let _resolve-avoid-cfg(style, ctx) = {
+  let cfg = (
+    enabled: true,
+    ring-step: 4pt,     // extra distance per retry ring
+    rings: 5,           // number of distance rings tried per anchor
+    shrink: (0.85, 0.7),// font scales tried when NOTHING fits at full size
+    assoc-factor: 1.1,  // label must be this factor closer to its own point
+    margin: 1.5pt,      // clearance around points and circle strokes
+    weights: (label: 4, point: 2, segment: 1, circle: 1),
+  )
+  let raw = style.at("label", default: (:)).at("avoid", default: true)
+  if raw == false {
+    cfg.enabled = false
+  } else if type(raw) == dictionary {
+    for (k, v) in raw { cfg.insert(k, v) }
+  }
+  let to-units(v) = if type(v) == length { v / ctx.length } else { float(v) }
+  cfg.ring-step = to-units(cfg.ring-step)
+  cfg.margin = to-units(cfg.margin)
+  cfg.rings = calc.max(1, cfg.rings)
+  if cfg.shrink == false or cfg.shrink == none { cfg.shrink = () }
+  cfg
+}
+
+/// Mark an angle with arc and label, with smart label positioning
+/// - vertex: the vertex of the angle (where the arc is drawn)
+/// - a, b: the two rays endpoints
+/// - label: the label content (e.g., $alpha$ or $30°$)
+/// - radius: arc radius (default: global angle style, 0.6)
+/// - label-radius: distance from vertex to label center along bisector (default: radius + 0.3)
+/// - label-offset: (along, perp) offset relative to bisector direction (default: (0, 0))
+/// - direction: "ccw" (counter-clockwise), "cw" (clockwise) or auto
+/// - angle-type: "interior" (default) — the smaller angle between the rays;
+///   "reflex"/"explementary" — the 360° complement, drawn on the other side;
+///   "supplementary"/"exterior" — the angle between the extension of ray
+///   vertex→a and ray vertex→b (the exterior angle of a polygon at a vertex).
+///   (A complementary angle needs an explicit perpendicular ray, e.g. via
+///   ctz-def-perp, since it is not spanned by the two given rays.)
+/// - stroke: arc stroke style (default: global angle style)
+/// - fill: arc fill color (default: global angle style)
+#let mark-angle(
+  cetz-draw,
+  cetz-angle,
+  vertex,
+  a,
+  b,
+  label: none,
+  radius: auto,
+  label-radius: auto,
+  label-offset: (0, 0),
+  direction: auto,
+  angle-type: "interior",
+  stroke: auto,
+  fill: auto,
+  name: none,
+) = {
+  assert(
+    angle-type in ("interior", "reflex", "explementary", "supplementary", "exterior"),
+    message: "angle-type must be \"interior\", \"reflex\"/\"explementary\" or \"supplementary\"/\"exterior\", got " + repr(angle-type),
+  )
+  let reflex = angle-type in ("reflex", "explementary")
+
+  draw-with-state(ctx => {
+    // Resolve style defaults from the global angle style (ctz-style(angle: ...))
+    let astyle = get-style(ctx).at("angle", default: (:))
+    let radius = if radius == auto { astyle.at("radius", default: 0.6) } else { radius }
+    let stroke = if stroke == auto { astyle.at("stroke", default: black) } else { stroke }
+    let fill = if fill == auto { astyle.at("fill", default: none) } else { fill }
+    let label-radius = if label-radius == auto { astyle.at("label-radius", default: auto) } else { label-radius }
+
+    let (_, v) = cetz.coordinate.resolve(ctx, vertex)
+    let (_, pa) = cetz.coordinate.resolve(ctx, a)
+    let (_, pb) = cetz.coordinate.resolve(ctx, b)
+
+    // Supplementary/exterior angle: mirror the first ray through the vertex
+    if angle-type in ("supplementary", "exterior") {
+      pa = (2 * v.at(0) - pa.at(0), 2 * v.at(1) - pa.at(1), pa.at(2, default: 0))
+    }
+
+    // Determine direction if set to auto
+    let final-direction = direction
+    if direction == auto {
+      // Vectors from vertex to the two points
+      let va = (pa.at(0) - v.at(0), pa.at(1) - v.at(1))
+      let vb = (pb.at(0) - v.at(0), pb.at(1) - v.at(1))
+
+      // Cross product: if positive, the ccw angle from a to b is < 180°.
+      // Interior angles take the smaller side, reflex angles the larger one.
+      let cross = va.at(0) * vb.at(1) - va.at(1) * vb.at(0)
+      final-direction = if (cross >= 0) != reflex { "ccw" } else { "cw" }
+    }
+
+    // Draw the angle arc using cetz.angle on the background layer
+    let elements = ()
+    elements += cetz.draw.on-layer(-1, {
+      cetz-angle.angle(
+        v, pa, pb,
+        radius: radius,
+        direction: final-direction,
+        stroke: stroke,
+        fill: fill,
+        name: name,
+        label: none,  // We handle label ourselves
+      )
+    })
+
+    // If there's a label, position it along the angle bisector
+    if label != none {
+      // The bisector direction points toward the interior (smaller) angle;
+      // for reflex angles the label goes on the opposite side.
+      let bisector = draw.angle-bisector-direction(pa, v, pb)
+      if reflex {
+        bisector = (-bisector.at(0), -bisector.at(1))
+      }
+
+      // Perpendicular to bisector (rotated 90° counterclockwise)
+      let perp = (-bisector.at(1), bisector.at(0))
+
+      // Place label along bisector direction from vertex
+      let lr = if label-radius == auto { radius + 0.3 } else { label-radius }
+
+      // Apply offsets relative to bisector coordinate system
+      // label-offset.at(0) = along bisector, label-offset.at(1) = perpendicular
+      let along-offset = label-offset.at(0)
+      let perp-offset = label-offset.at(1)
+
+      let label-x = v.at(0) + (lr + along-offset) * bisector.at(0) + perp-offset * perp.at(0)
+      let label-y = v.at(1) + (lr + along-offset) * bisector.at(1) + perp-offset * perp.at(1)
+
+      let m = measure(label)
+      let (w, h) = (m.width / ctx.length, m.height / ctx.length)
+
+      // Collision avoidance: the angle label's natural direction is fixed
+      // (the bisector), so instead of switching anchors it is pushed outward
+      // along the bisector in small steps until its rect is clear of drawn
+      // geometry, point markers and other labels. Bounded (8 steps); honors
+      // the same global avoid toggle as point labels. The user's explicit
+      // label-radius / label-offset are respected as the starting point.
+      let avoid-cfg = _resolve-avoid-cfg(get-style(ctx), ctx)
+      if avoid-cfg.enabled and w > 0 and h > 0 {
+        let obstacles = (
+          segments: ctx.shared-state.at(_drawn-lines-key, default: ()),
+          circles: ctx.shared-state.at(_drawn-circles-key, default: ()),
+          points: ctx.shared-state.at(_drawn-points-key, default: ()),
+          labels: ctx.shared-state.at(_placed-labels-key, default: ()),
+        )
+        let step = calc.max(avoid-cfg.ring-step, 0.05)
+        let tries = 0
+        while tries < 8 {
+          let rect = (label-x - w / 2, label-y - h / 2, label-x + w / 2, label-y + h / 2)
+          if score-label-rect(rect, obstacles, avoid-cfg.weights, margin: avoid-cfg.margin) == 0 {
+            break
+          }
+          label-x += step * bisector.at(0)
+          label-y += step * bisector.at(1)
+          tries += 1
+        }
+      }
+
+      // Register the label rect so point labels can avoid it
+      if w > 0 and h > 0 {
+        ctx = _record-label-rect(ctx, (label-x - w / 2, label-y - h / 2, label-x + w / 2, label-y + h / 2))
+      }
+
+      elements += cetz-draw.content((label-x, label-y), label)
+    }
+    (ctx, elements)
+  })
+}
+
 /// Draw points using global style
 /// Usage: draw-points-styled(cetz-draw, pt, "A", "B", "C", "O")
 #let draw-points-styled(cetz-draw, pt-func, ..names) = {
-  cetz-draw.get-ctx(ctx => {
+  let overrides = names.named()
+  draw-with-state(ctx => {
     let style = get-style(ctx)
     let ps = style.point
+    // Per-call overrides: shape:, size:, stroke:, fill:, or color: (both)
+    for (k, v) in overrides {
+      if k == "color" {
+        ps.insert("stroke", v + draw.default-point-stroke-width)
+        ps.insert("fill", v)
+      } else {
+        ps.insert(k, v)
+      }
+    }
 
+    let drawn-points = ctx.shared-state.at(_drawn-points-key, default: ())
+    let elements = ()
     for name in names.pos() {
       let coord = pt-func(name)
       let (_, c) = cetz.coordinate.resolve(ctx, coord)
@@ -569,20 +421,25 @@
       let y = c.at(1)
       let sz = ps.size
 
+      // Register the marker for label avoidance
+      drawn-points.push((x, y, sz))
+
       if ps.shape == "cross" {
-        cetz-draw.line((x - sz, y - sz), (x + sz, y + sz), stroke: ps.stroke)
-        cetz-draw.line((x - sz, y + sz), (x + sz, y - sz), stroke: ps.stroke)
+        elements += cetz-draw.line((x - sz, y - sz), (x + sz, y + sz), stroke: ps.stroke)
+        elements += cetz-draw.line((x - sz, y + sz), (x + sz, y - sz), stroke: ps.stroke)
       } else if ps.shape == "dot" {
-        cetz-draw.circle((x, y), radius: sz, fill: ps.at("fill", default: black), stroke: none)
+        elements += cetz-draw.circle((x, y), radius: sz, fill: ps.at("fill", default: black), stroke: none)
       } else if ps.shape == "circle" {
-        cetz-draw.circle((x, y), radius: sz, fill: ps.at("fill", default: none), stroke: ps.at("stroke", default: black))
+        elements += cetz-draw.circle((x, y), radius: sz, fill: ps.at("fill", default: none), stroke: ps.at("stroke", default: black))
       } else if ps.shape == "plus" {
-        cetz-draw.line((x - sz, y), (x + sz, y), stroke: ps.stroke)
-        cetz-draw.line((x, y - sz), (x, y + sz), stroke: ps.stroke)
+        elements += cetz-draw.line((x - sz, y), (x + sz, y), stroke: ps.stroke)
+        elements += cetz-draw.line((x, y - sz), (x, y + sz), stroke: ps.stroke)
       } else if ps.shape == "square" {
-        cetz-draw.rect((x - sz, y - sz), (x + sz, y + sz), fill: ps.at("fill", default: black), stroke: none)
+        elements += cetz-draw.rect((x - sz, y - sz), (x + sz, y + sz), fill: ps.at("fill", default: black), stroke: none)
       }
     }
+    ctx.shared-state.insert(_drawn-points-key, drawn-points)
+    (ctx, elements)
   })
 }
 
@@ -596,16 +453,26 @@
   let names = args.pos()
   let positions = args.named()
 
-  cetz-draw.get-ctx(ctx => {
+  draw-with-state(ctx => {
     let style = get-style(ctx)
-    let default-pos = "above"
-    let padding = style.label.padding
-    let placed = ctx.shared-state.at(_label-placed-key, default: ())
+    let avoid-cfg = _resolve-avoid-cfg(style, ctx)
+    // When the placement engine is active, unspecified labels are fully
+    // automatic: the initial anchor is chosen from the local geometry and
+    // the engine refines it. With the engine off, keep the legacy "above".
+    let default-pos = if avoid-cfg.enabled { "auto" } else { "above" }
+    let point-size = style.at("point", default: (:)).at("size", default: 0.07)
+    // Names already labeled with identical content: drawing them again is
+    // almost always an accidental duplicate (e.g. ctz-draw(path:) already
+    // labels its points and a later ctz-draw-labels repeats them) — skip.
+    let drawn-ids = ctx.shared-state.at("ctz-drawn-label-ids", default: ())
 
     // Get all named lines from context for "auto" positioning
     let lines = ctx.shared-state.at("ctz-lines", default: (:))
-    // Get all drawn line segments (unnamed) for avoidance
+    // Drawn geometry registries (obstacles for collision avoidance)
     let drawn-lines = ctx.shared-state.at(_drawn-lines-key, default: ())
+    let drawn-circles = ctx.shared-state.at(_drawn-circles-key, default: ())
+    let drawn-points = ctx.shared-state.at(_drawn-points-key, default: ())
+    let placed = ctx.shared-state.at(_placed-labels-key, default: ())
     // Get all named points from context
     let points-store = ctx.shared-state.at("ctz-points", default: (:))
 
@@ -617,19 +484,28 @@
       resolved-points.insert(name, c)
     }
 
+    let elements = ()
+    let specs = ()
     for name in names {
       let spec = positions.at(name, default: default-pos)
-      let (pos, offset, avoid-extra, label-content) = if type(spec) == str {
-        (spec, (0, 0), (), none)
+      let (pos, offset, avoid-extra, label-content, avoid-flag) = if type(spec) == str {
+        (spec, (0, 0), (), none, auto)
       } else if type(spec) == dictionary {
+        // avoid: bool toggles the collision engine for this label;
+        // avoid: (names...) keeps its meaning of extra points to avoid
+        let av = spec.at("avoid", default: auto)
+        let (extra, flag) = if type(av) == array { (av, auto) }
+          else if type(av) == bool { ((), av) }
+          else { ((), auto) }
         (
           spec.at("pos", default: default-pos),
           spec.at("offset", default: (0, 0)),
-          spec.at("avoid", default: ()),
-          spec.at("label", default: spec.at("text", default: none))
+          extra,
+          spec.at("label", default: spec.at("text", default: none)),
+          flag,
         )
       } else {
-        (default-pos, (0, 0), (), none)
+        (default-pos, (0, 0), (), none, auto)
       }
 
       let c = resolved-points.at(name)
@@ -666,8 +542,9 @@
           }
         }
 
-        // 2. Find directions along lines (endpoint OR lying on line)
-        for (line-name, line-pts) in lines {
+        // 2. Find directions along lines and drawn segments
+        // (endpoint OR lying on the line)
+        for line-pts in lines.values() + drawn-lines {
           let (p1, p2) = line-pts
           let d1 = util.dist(c, p1)
           let d2 = util.dist(c, p2)
@@ -762,122 +639,11 @@
         pos = compute-auto-label-position(avoid-angles)
       }
 
-      let label-padding = if is-auto {
-        if pos in ("above", "below", "left", "right") { style.label.single-padding } else { padding }
-      } else {
-        style.label.at("explicit-padding", default: style.label.single-padding)
-      }
-      let base = (c.at(0) + offset.at(0), c.at(1) + offset.at(1))
-      // For explicit positions, offset the label in the chosen direction and center it.
-      let anchor = if pos == "auto" { draw.ctz-pos-to-anchor(pos) } else { "center" }
-      if pos != "auto" {
-        let off = draw.anchor-offset(pos, label-padding)
-        base = (base.at(0) + off.at(0), base.at(1) + off.at(1))
-      }
-
-      // Simple collision avoidance against previous labels and axes
-      let r = label-padding + name.len() * 0.06
-      let label-coord = base
-
-      if pos == "auto" {
-        let best-score = 999999
-
-        // Distance from point to infinite line through p1/p2
-        let dist-to-line = (pt, p1, p2) => {
-          let dx = p2.at(0) - p1.at(0)
-          let dy = p2.at(1) - p1.at(1)
-          let denom = calc.sqrt(dx * dx + dy * dy)
-          if denom < util.eps-geometric { return 999999 }
-          let num = calc.abs(dy * pt.at(0) - dx * pt.at(1) + p2.at(0) * p1.at(1) - p2.at(1) * p1.at(0))
-          num / denom
-        }
-
-        // Prefer 8 compass directions, then push outward along the best
-        let directions = (
-          (name: "right", vec: (1, 0)),
-          (name: "above right", vec: (0.707, 0.707)),
-          (name: "above", vec: (0, 1)),
-          (name: "above left", vec: (-0.707, 0.707)),
-          (name: "left", vec: (-1, 0)),
-          (name: "below left", vec: (-0.707, -0.707)),
-          (name: "below", vec: (0, -1)),
-          (name: "below right", vec: (0.707, -0.707)),
-        )
-
-        let base-dist = label-padding + 0.15
-        for dir in directions {
-          let cand = (base.at(0) + dir.vec.at(0) * base-dist, base.at(1) + dir.vec.at(1) * base-dist)
-          let score = 0
-
-          // Avoid axes
-          if calc.abs(cand.at(0)) < 0.12 { score += 5 }
-          if calc.abs(cand.at(1)) < 0.12 { score += 5 }
-
-          // Avoid overlaps with placed labels
-          for p in placed {
-            let dx = cand.at(0) - p.at(0)
-            let dy = cand.at(1) - p.at(1)
-            let dist = calc.sqrt(dx * dx + dy * dy)
-            let gap = (p.at(2) + r) - dist
-            if gap > 0 { score += 50 + gap * 10 }
-          }
-
-          // Avoid nearby points (including this point's neighbors)
-          for (pt-name, pt) in points-store {
-            let (_, pc) = cetz.coordinate.resolve(ctx, pt)
-            let dxp = cand.at(0) - pc.at(0)
-            let dyp = cand.at(1) - pc.at(1)
-            let distp = calc.sqrt(dxp * dxp + dyp * dyp)
-            if distp < 0.5 { score += (0.5 - distp) * 60 }
-          }
-
-          // Avoid proximity to named lines
-          for (line-name, line-pts) in lines {
-            let (p1, p2) = line-pts
-            let d = dist-to-line(cand, p1, p2)
-            if d < 0.55 { score += (0.55 - d) * 45 }
-          }
-          // Avoid proximity to drawn (unnamed) lines
-          for seg in drawn-lines {
-            let (p1, p2) = seg
-            let d = dist-to-line(cand, p1, p2)
-            if d < 0.55 { score += (0.55 - d) * 45 }
-          }
-
-          if score < best-score {
-            best-score = score
-            label-coord = cand
-          }
-        }
-
-        // Push outward along chosen direction if still overlapping
-        let tries = 0
-        while tries < 6 {
-          let ok = true
-          for p in placed {
-            let dx = label-coord.at(0) - p.at(0)
-            let dy = label-coord.at(1) - p.at(1)
-            let dist = calc.sqrt(dx * dx + dy * dy)
-            if dist < (p.at(2) + r) {
-              ok = false
-              break
-            }
-          }
-          if ok { break }
-          let vx = label-coord.at(0) - c.at(0)
-          let vy = label-coord.at(1) - c.at(1)
-          let vlen = calc.sqrt(vx * vx + vy * vy)
-          if vlen < util.eps-geometric { break }
-          label-coord = (label-coord.at(0) + 0.15 * vx / vlen, label-coord.at(1) + 0.15 * vy / vlen)
-          tries += 1
-        }
-      }
-
-      placed.push((label-coord.at(0), label-coord.at(1), r))
-      ctx.shared-state.insert(_label-placed-key, placed)
+      // Convert position + offset into a coordinate and a cetz anchor.
+      let base-coord = (c.at(0) + offset.at(0), c.at(1) + offset.at(1))
 
       let final-label = if label-content == none {
-        [$#name$]
+        [$#_math-label(name)$]
       } else if type(label-content) == str {
         // Default to math mode for string labels unless explicitly opted out.
         let math = if type(spec) == dictionary {
@@ -885,13 +651,149 @@
         } else {
           true
         }
-        if math { [$#label-content$] } else { label-content }
+        if math { [$#_math-label(label-content)$] } else { label-content }
       } else {
         label-content
       }
 
-      cetz-draw.content(label-coord, final-label, anchor: anchor, padding: label-padding)
+      // Skip exact duplicates (same point, same content): drawing them again
+      // is almost always accidental (e.g. path auto-labels + ctz-draw-labels)
+      let label-id = name + "|" + repr(final-label)
+      if label-id in drawn-ids { continue }
+      drawn-ids.push(label-id)
+
+      let engine-on = if avoid-flag == auto { avoid-cfg.enabled } else { avoid-flag }
+      let known-pos = pos in ("above", "below", "left", "right",
+        "above left", "above right", "below left", "below right")
+
+      // Sibling / extra point obstacles for this label (own point excluded)
+      let obs-points = ()
+      for other-name in names {
+        if other-name != name {
+          let oc = resolved-points.at(other-name)
+          obs-points.push((oc.at(0), oc.at(1), point-size))
+        }
+      }
+      for avoid-name in avoid-extra {
+        if avoid-name in points-store {
+          let (_, ac) = cetz.coordinate.resolve(ctx, points-store.at(avoid-name))
+          obs-points.push((ac.at(0), ac.at(1), point-size))
+        }
+      }
+
+      specs.push((
+        name: name,
+        pos: pos,
+        base-coord: base-coord,
+        own: c,
+        final-label: final-label,
+        engine-on: engine-on,
+        known-pos: known-pos,
+        obs-points: obs-points,
+      ))
     }
+
+    // ----------------------------------------------------------------------
+    // Placement at a UNIFORM group scale: if any label of the figure must
+    // shrink to fit, all labels of the figure use the same (smallest needed)
+    // scale — mixed label sizes look accidental. The scale is sticky for
+    // later label calls in the same canvas via shared-state.
+    // ----------------------------------------------------------------------
+    // pad: the 5pt content padding is the visual gap between the point and
+    // the label; the collision rect includes it (converted to canvas units).
+    let pad = 5pt / ctx.length
+    let cfg = (
+      pad: pad,
+      // texts of neighboring labels may come as close as 2pt
+      label-pad: 1pt / ctx.length,
+      ring-step: avoid-cfg.ring-step,
+      rings: avoid-cfg.rings,
+      weights: avoid-cfg.weights,
+      margin: avoid-cfg.margin,
+      assoc-factor: avoid-cfg.at("assoc-factor", default: 1.1),
+    )
+
+    let measure-at(label, s) = {
+      let m = if s == 1.0 { measure(label) } else { measure(text(size: 1em * s, label)) }
+      (m.width / ctx.length, m.height / ctx.length)
+    }
+
+    // Allowed scales, largest first, capped by the canvas' sticky group scale
+    let group-scale = ctx.shared-state.at("ctz-label-scale", default: 1.0)
+    let all-scales = (1.0,) + avoid-cfg.shrink.map(float)
+    let scales = all-scales.filter(s => s <= group-scale + 1e-9)
+    if scales.len() == 0 { scales = (all-scales.last(),) }
+
+    // One placement pass over all labels at the given allowed scales.
+    // Returns the results and the scales actually used.
+    let run-pass(scales) = {
+      let placed2 = placed
+      let results = ()
+      for sp in specs {
+        let top = scales.first()
+        let (w, h) = measure-at(sp.final-label, top)
+        if sp.engine-on and sp.known-pos and w > 0 and h > 0 {
+          let sizes = ()
+          for s in scales {
+            let (ws, hs) = measure-at(sp.final-label, s)
+            sizes.push((scale: s, w: ws, h: hs))
+          }
+          let obstacles = (
+            segments: drawn-lines,
+            circles: drawn-circles,
+            points: drawn-points.filter(p => util.dist((p.at(0), p.at(1)), sp.own) > 1e-6) + sp.obs-points,
+            labels: placed2,
+          )
+          let placement = find-label-placement(sp.pos, sp.base-coord, sizes, obstacles, cfg)
+          placed2.push(placement.rect)
+          results.push((
+            name: sp.name, final-label: sp.final-label,
+            pos: placement.pos, coord: placement.coord, scale: placement.scale,
+          ))
+        } else {
+          // Engine off (or unknown pos / empty label): exact requested spot
+          // at the group scale; register the tight rect if it has a size.
+          if sp.known-pos and w > 0 and h > 0 {
+            placed2.push(anchor-candidate-rect(sp.pos, sp.base-coord, w, h, 1pt / ctx.length))
+          }
+          results.push((
+            name: sp.name, final-label: sp.final-label,
+            pos: sp.pos, coord: sp.base-coord, scale: top,
+          ))
+        }
+      }
+      (results, placed2)
+    }
+
+    let (results, placed2) = run-pass(scales)
+    // Uniform-scale fixpoint: cap the allowed scales at the smallest used
+    // scale and re-place until every label uses the same scale. Bounded by
+    // the (short) shrink list, so this terminates in <= its length passes.
+    let guard = 0
+    while results.len() > 0 and guard < 4 {
+      let used = results.map(r => r.scale)
+      let min-used = calc.min(..used)
+      if used.all(s => s == min-used) { break }
+      scales = scales.filter(s => s <= min-used + 1e-9)
+      (results, placed2) = run-pass(scales)
+      guard += 1
+    }
+    placed = placed2
+
+    // Remember the group scale for later label calls in this canvas
+    let final-scale = calc.min(..results.map(r => r.scale), 1.0)
+    ctx.shared-state.insert("ctz-label-scale", calc.min(group-scale, final-scale))
+
+    for r in results {
+      let anchor = draw.ctz-pos-to-anchor(r.pos)
+      let body = if r.scale == 1.0 { r.final-label } else { text(size: 1em * r.scale, r.final-label) }
+      // 5pt is an absolute length → gap between label and point is canvas-scale independent.
+      elements += cetz-draw.content(r.coord, body, anchor: anchor, padding: 5pt)
+    }
+
+    ctx.shared-state.insert("ctz-drawn-label-ids", drawn-ids)
+    ctx.shared-state.insert(_placed-labels-key, placed)
+    (ctx, elements)
   })
 }
 
@@ -899,75 +801,25 @@
 // DRAWING COMMANDS
 // =============================================================================
 
-/// Draw a polygon from named points
-/// Usage: draw-polygon(cetz-draw, pt, "A", "B", "C", "D", stroke: black, fill: none)
-#let draw-polygon(cetz-draw, pt-func, ..args) = {
-  let names = args.pos()
-  let style = args.named()
-  let stroke-style = style.at("stroke", default: black)
-  let fill-style = style.at("fill", default: none)
-  let close = style.at("close", default: true)
-
-  cetz-draw.get-ctx(ctx => {
-    let coords = names.map(name => {
-      let (_, c) = cetz.coordinate.resolve(ctx, pt-func(name))
-      c
-    })
-
-    // Manually close by concatenating first point at end
-    if close and coords.len() > 0 {
-      coords = coords + (coords.at(0),)
-    }
-
-    // Track drawn segments for label avoidance
-    if coords.len() >= 2 {
-      let drawn = ctx.shared-state.at(_drawn-lines-key, default: ())
-      for i in range(0, coords.len() - 1) {
-        drawn.push((coords.at(i), coords.at(i + 1)))
-      }
-      ctx.shared-state.insert(_drawn-lines-key, drawn)
-    }
-
-    cetz-draw.line(..coords, stroke: stroke-style, fill: fill-style)
-  })
-}
-
-/// Fill a polygon (no stroke by default)
-/// Usage: fill-polygon(cetz-draw, pt, "A", "B", "C", color: blue.lighten(80%), opacity: 0.5)
-#let fill-polygon(cetz-draw, pt-func, ..args) = {
-  let names = args.pos()
-  let style = args.named()
-  let fill-color = style.at("color", default: gray.lighten(50%))
-  let opacity = style.at("opacity", default: 1)
-  let stroke-style = style.at("stroke", default: none)
-
-  cetz-draw.get-ctx(ctx => {
-    let coords = names.map(name => {
-      let (_, c) = cetz.coordinate.resolve(ctx, pt-func(name))
-      c
-    })
-
-    let actual-fill = if opacity < 1 {
-      fill-color.transparentize((1 - opacity) * 100%)
-    } else {
-      fill-color
-    }
-
-    cetz-draw.line(..coords, close: true, stroke: stroke-style, fill: actual-fill)
-  })
-}
 
 /// Draw a segment with optional arrows and dimension label
 /// Usage: draw-segment(cetz-draw, pt, "A", "B", arrows: "->", dim: $5$, stroke: black)
 #let draw-segment(cetz-draw, pt-func, p1-name, p2-name, arrows: none, dim: none, dim-pos: "above", dim-dist: 0.3, stroke: black, mark: none) = {
-  cetz-draw.get-ctx(ctx => {
+  draw-with-state(ctx => {
     let (_, c1) = cetz.coordinate.resolve(ctx, pt-func(p1-name))
     let (_, c2) = cetz.coordinate.resolve(ctx, pt-func(p2-name))
 
+    let clip = get-clip-region(ctx)
+    if clip != none {
+      let result = clip-line-to-rect(c1.at(0), c1.at(1), c2.at(0), c2.at(1), clip.xmin, clip.ymin, clip.xmax, clip.ymax)
+      if result == none { return (ctx, none) }
+      let ((x0, y0), (x1, y1)) = result
+      c1 = (x0, y0)
+      c2 = (x1, y1)
+    }
+
     // Track drawn segment for label avoidance
-    let drawn = ctx.shared-state.at(_drawn-lines-key, default: ())
-    drawn.push((c1, c2))
-    ctx.shared-state.insert(_drawn-lines-key, drawn)
+    ctx = _record-segment(ctx, c1, c2)
 
     // Determine mark style - prefer explicit mark parameter over arrows
     let mark-start = none
@@ -990,10 +842,11 @@
     }
 
     // Draw the segment
+    let elements = ()
     if mark-start != none or mark-end != none {
-      cetz-draw.line(c1, c2, stroke: stroke, mark: (start: mark-start, end: mark-end))
+      elements += cetz-draw.line(c1, c2, stroke: stroke, mark: (start: mark-start, end: mark-end))
     } else {
-      cetz-draw.line(c1, c2, stroke: stroke)
+      elements += cetz-draw.line(c1, c2, stroke: stroke)
     }
 
     // Add dimension label if requested
@@ -1015,9 +868,20 @@
           (mx + px, my + py)
         }
 
-        cetz-draw.content(label-pos, dim)
+        // Register the dim label rect so point labels can avoid it
+        let m = measure(dim)
+        let (w, h) = (m.width / ctx.length, m.height / ctx.length)
+        if w > 0 and h > 0 {
+          ctx = _record-label-rect(ctx, (
+            label-pos.at(0) - w / 2, label-pos.at(1) - h / 2,
+            label-pos.at(0) + w / 2, label-pos.at(1) + h / 2,
+          ))
+        }
+
+        elements += cetz-draw.content(label-pos, dim)
       }
     }
+    (ctx, elements)
   })
 }
 
@@ -1173,8 +1037,8 @@
     let (_, e) = cetz.coordinate.resolve(ctx, pt-func(end-name))
 
     let radius = util.dist(c, s)
-    let start-angle = calc.atan2(s.at(1) - c.at(1), s.at(0) - c.at(0))
-    let end-angle = calc.atan2(e.at(1) - c.at(1), e.at(0) - c.at(0))
+    let start-angle = util.angle-of(s.at(0) - c.at(0), s.at(1) - c.at(1))
+    let end-angle = util.angle-of(e.at(0) - c.at(0), e.at(1) - c.at(1))
 
     // Apply delta extension
     let start-deg = if type(start-angle) == angle { start-angle } else { start-angle * 1deg }
@@ -1196,6 +1060,7 @@
       start: start-deg,
       stop: end-deg,
       radius: radius,
+      anchor: "origin",
       stroke: stroke,
       mark: if mark-start != none or mark-end != none { (start: mark-start, end: mark-end) } else { none }
     )
@@ -1218,16 +1083,12 @@
     start: start-angle,
     stop: end-angle,
     radius: radius,
+    anchor: "origin",
     stroke: stroke,
     mark: if mark-start != none or mark-end != none { (start: mark-start, end: mark-end) } else { none }
   )
 }
 
-/// Draw a circle with explicit radius (R option)
-/// Usage: draw-circle-r(cetz-draw, "O", 3, stroke: black, fill: none)
-#let draw-circle-r(cetz-draw, center, radius, stroke: black, fill: none) = {
-  cetz-draw.circle(center, radius: radius, stroke: stroke, fill: fill)
-}
 
 /// Draw an ellipse (axis-aligned or rotated)
 /// Usage: draw-ellipse(cetz-draw, (0, 0), 3, 2, angle: 30deg)
@@ -1355,148 +1216,6 @@
   }
 }
 
-/// Draw a circle through a point
-/// Usage: draw-circle-through(cetz-draw, pt, "O", "A", stroke: black)
-#let draw-circle-through(cetz-draw, pt-func, center-name, through-name, stroke: black, fill: none) = {
-  cetz-draw.get-ctx(ctx => {
-    let (_, c) = cetz.coordinate.resolve(ctx, pt-func(center-name))
-    let (_, t) = cetz.coordinate.resolve(ctx, pt-func(through-name))
-    let radius = util.dist(c, t)
-    cetz-draw.circle(c, radius: radius, stroke: stroke, fill: fill)
-  })
-}
-
-/// Draw a circle by diameter
-/// Usage: draw-circle-diameter(cetz-draw, pt, "A", "B", stroke: black)
-#let draw-circle-diameter(cetz-draw, pt-func, p1-name, p2-name, stroke: black, fill: none) = {
-  cetz-draw.get-ctx(ctx => {
-    let (_, c1) = cetz.coordinate.resolve(ctx, pt-func(p1-name))
-    let (_, c2) = cetz.coordinate.resolve(ctx, pt-func(p2-name))
-    let center = util.midpoint(c1, c2)
-    let radius = util.dist(c1, c2) / 2
-    cetz-draw.circle(center, radius: radius, stroke: stroke, fill: fill)
-  })
-}
-
-/// Draw circumcircle of triangle
-/// Usage: draw-circumcircle(cetz-draw, pt, "A", "B", "C", stroke: black)
-#let draw-circumcircle(cetz-draw, pt-func, a-name, b-name, c-name, stroke: black, fill: none) = {
-  cetz-draw.get-ctx(ctx => {
-    let (_, pa) = cetz.coordinate.resolve(ctx, pt-func(a-name))
-    let (_, pb) = cetz.coordinate.resolve(ctx, pt-func(b-name))
-    let (_, pc) = cetz.coordinate.resolve(ctx, pt-func(c-name))
-
-    // Calculate circumcenter
-    let (pb1-p1, pb1-p2, mid-ab) = util.perpendicular-bisector(pa, pb)
-    let (pb2-p1, pb2-p2, mid-ac) = util.perpendicular-bisector(pa, pc)
-
-    let dx1 = pb1-p2.at(0) - pb1-p1.at(0)
-    let dy1 = pb1-p2.at(1) - pb1-p1.at(1)
-    let dx2 = pb2-p2.at(0) - pb2-p1.at(0)
-    let dy2 = pb2-p2.at(1) - pb2-p1.at(1)
-
-    let denom = dx1 * dy2 - dy1 * dx2
-    if calc.abs(denom) < 1e-9 { return }
-
-    let t = ((pb2-p1.at(0) - pb1-p1.at(0)) * dy2 - (pb2-p1.at(1) - pb1-p1.at(1)) * dx2) / denom
-    let center = (pb1-p1.at(0) + t * dx1, pb1-p1.at(1) + t * dy1)
-    let radius = util.dist(center, pa)
-
-    cetz-draw.circle(center, radius: radius, stroke: stroke, fill: fill)
-  })
-}
-
-/// Draw incircle of triangle
-/// Usage: draw-incircle(cetz-draw, pt, "A", "B", "C", stroke: black)
-#let draw-incircle(cetz-draw, pt-func, a-name, b-name, c-name, stroke: black, fill: none) = {
-  cetz-draw.get-ctx(ctx => {
-    let (_, pa) = cetz.coordinate.resolve(ctx, pt-func(a-name))
-    let (_, pb) = cetz.coordinate.resolve(ctx, pt-func(b-name))
-    let (_, pc) = cetz.coordinate.resolve(ctx, pt-func(c-name))
-
-    // Side lengths
-    let la = util.dist(pb, pc)
-    let lb = util.dist(pa, pc)
-    let lc = util.dist(pa, pb)
-    let total = la + lb + lc
-
-    if total < 1e-9 { return }
-
-    // Incenter
-    let center = (
-      (la * pa.at(0) + lb * pb.at(0) + lc * pc.at(0)) / total,
-      (la * pa.at(1) + lb * pb.at(1) + lc * pc.at(1)) / total,
-    )
-
-    // Inradius = Area / s
-    let abx = pb.at(0) - pa.at(0)
-    let aby = pb.at(1) - pa.at(1)
-    let acx = pc.at(0) - pa.at(0)
-    let acy = pc.at(1) - pa.at(1)
-    let area = calc.abs(abx * acy - aby * acx) / 2
-    let s = total / 2
-    let radius = area / s
-
-    cetz-draw.circle(center, radius: radius, stroke: stroke, fill: fill)
-  })
-}
-
-/// Draw a semicircle with diameter AB
-/// Usage: draw-semicircle(cetz-draw, pt, "A", "B", stroke: black, above: true)
-#let draw-semicircle(cetz-draw, pt-func, p1-name, p2-name, stroke: black, fill: none, above: true) = {
-  cetz-draw.get-ctx(ctx => {
-    let (_, c1) = cetz.coordinate.resolve(ctx, pt-func(p1-name))
-    let (_, c2) = cetz.coordinate.resolve(ctx, pt-func(p2-name))
-    let center = util.midpoint(c1, c2)
-    let radius = util.dist(c1, c2) / 2
-
-    // Calculate start angle from p1
-    let angle-rad = calc.atan2(c1.at(1) - center.at(1), c1.at(0) - center.at(0))
-    // calc.atan2() returns an angle type, convert to degrees
-    let start-deg = angle-rad / 1rad * 180deg / calc.pi
-
-    if above {
-      cetz-draw.arc(center, start: start-deg, stop: start-deg + 180deg, radius: radius, stroke: stroke, fill: fill)
-    } else {
-      cetz-draw.arc(center, start: start-deg, stop: start-deg - 180deg, radius: radius, stroke: stroke, fill: fill)
-    }
-  })
-}
-
-/// Draw a circular sector
-/// Usage: draw-sector(cetz-draw, pt, "O", "A", "B", stroke: black, fill: blue.lighten(80%))
-#let draw-sector(cetz-draw, pt-func, center-name, start-name, end-name, stroke: black, fill: none) = {
-  cetz-draw.get-ctx(ctx => {
-    let (_, c) = cetz.coordinate.resolve(ctx, pt-func(center-name))
-    let (_, s) = cetz.coordinate.resolve(ctx, pt-func(start-name))
-    let (_, e) = cetz.coordinate.resolve(ctx, pt-func(end-name))
-
-    let radius = util.dist(c, s)
-    let start-angle = calc.atan2(s.at(1) - c.at(1), s.at(0) - c.at(0))
-    let end-angle = calc.atan2(e.at(1) - c.at(1), e.at(0) - c.at(0))
-
-    let start-deg = if type(start-angle) == angle { start-angle } else { start-angle * 1deg }
-    let end-deg = if type(end-angle) == angle { end-angle } else { end-angle * 1deg }
-
-    // Draw arc and lines to center to form sector
-    cetz-draw.line(c, s, stroke: stroke)
-    cetz-draw.arc(c, start: start-deg, stop: end-deg, radius: radius, stroke: stroke)
-    cetz-draw.line(e, c, stroke: stroke)
-
-    // Fill if requested - draw filled arc sector
-    if fill != none {
-      // Create a path for the filled sector
-      let n-steps = 36
-      let angle-diff = end-deg - start-deg
-      let points = (c,)
-      for i in range(n-steps + 1) {
-        let angle = start-deg + angle-diff * i / n-steps
-        points.push((c.at(0) + radius * calc.cos(angle), c.at(1) + radius * calc.sin(angle)))
-      }
-      cetz-draw.line(..points, close: true, fill: fill, stroke: none)
-    }
-  })
-}
 
 /// Draw an extended line beyond two points
 /// Usage: draw-line-extended(cetz-draw, pt, "A", "B", add: (0.5, 0.5), stroke: black)
@@ -1513,7 +1232,16 @@
     let start = (c1.at(0) - add-before * dx, c1.at(1) - add-before * dy)
     let end = (c2.at(0) + add-after * dx, c2.at(1) + add-after * dy)
 
-    cetz-draw.line(start, end, stroke: stroke)
+    let clip = get-clip-region(ctx)
+    if clip == none {
+      cetz-draw.line(start, end, stroke: stroke)
+    } else {
+      let result = clip-line-to-rect(start.at(0), start.at(1), end.at(0), end.at(1), clip.xmin, clip.ymin, clip.xmax, clip.ymax)
+      if result != none {
+        let ((x0, y0), (x1, y1)) = result
+        cetz-draw.line((x0, y0), (x1, y1), stroke: stroke)
+      }
+    }
   })
 }
 
@@ -1594,11 +1322,11 @@
     cetz.draw.on-layer(-1, {
       if german {
         // German style: small arc
-        let start-angle = calc.atan2(va-y, va-x)
-        let end-angle = calc.atan2(vc-y, vc-x)
+        let start-angle = util.angle-of(va-x, va-y)
+        let end-angle = util.angle-of(vc-x, vc-y)
         let start-deg = if type(start-angle) == angle { start-angle } else { start-angle * 1deg }
         let end-deg = if type(end-angle) == angle { end-angle } else { end-angle * 1deg }
-        cetz-draw.arc(pv, start: start-deg, stop: end-deg, radius: size, stroke: color + 1pt)
+        cetz-draw.arc(pv, start: start-deg, stop: end-deg, radius: size, anchor: "origin", stroke: color + 1pt)
       } else {
         // Standard square marker
         let p1 = (pv.at(0) + va-x, pv.at(1) + va-y)
@@ -1664,7 +1392,7 @@
 
     if sloped {
       // Calculate rotation angle
-      let angle = calc.atan2(dy, dx)
+      let angle = util.angle-of(dx, dy)
       let angle-deg = if type(angle) == angle { angle } else { angle * 1deg }
       // Adjust for readability (keep text right-side up)
       if angle-deg > 90deg { angle-deg = angle-deg - 180deg }
@@ -1702,6 +1430,14 @@
 // GRID AND AXES
 // =============================================================================
 
+/// Inclusive list of values from vmin to vmax in exact multiples of step.
+/// Avoids float accumulation (`while v <= vmax { v += step }` can skip the
+/// last value, e.g. with step 0.1).
+#let _step-values(vmin, vmax, step) = {
+  let n = int(calc.floor((vmax - vmin) / step + 1e-9))
+  range(n + 1).map(i => vmin + i * step)
+}
+
 /// Draw a grid
 /// Usage: draw-grid(cetz-draw, xmin: -5, xmax: 5, ymin: -5, ymax: 5, step: 1)
 #let draw-grid(
@@ -1721,31 +1457,23 @@
   // Draw sub-grid first if requested
   if sub {
     // Vertical sub-lines
-    let x = xmin
-    while x <= xmax {
+    for x in _step-values(xmin, xmax, sub-xstep) {
       cetz-draw.line((x, ymin), (x, ymax), stroke: sub-stroke)
-      x = x + sub-xstep
     }
     // Horizontal sub-lines
-    let y = ymin
-    while y <= ymax {
+    for y in _step-values(ymin, ymax, sub-ystep) {
       cetz-draw.line((xmin, y), (xmax, y), stroke: sub-stroke)
-      y = y + sub-ystep
     }
   }
 
   // Draw main grid lines
   // Vertical lines
-  let x = xmin
-  while x <= xmax {
+  for x in _step-values(xmin, xmax, xstep) {
     cetz-draw.line((x, ymin), (x, ymax), stroke: stroke)
-    x = x + xstep
   }
   // Horizontal lines
-  let y = ymin
-  while y <= ymax {
+  for y in _step-values(ymin, ymax, ystep) {
     cetz-draw.line((xmin, y), (xmax, y), stroke: stroke)
-    y = y + ystep
   }
 }
 
@@ -1787,44 +1515,36 @@
 
   // X axis ticks
   if ticks {
-    let x = xmin
-    while x <= xmax {
+    for x in _step-values(xmin, xmax, xstep) {
       if calc.abs(x) > 0.001 {  // Skip origin
         cetz-draw.line((x, -tick-size), (x, tick-size), stroke: stroke)
       }
-      x = x + xstep
     }
 
     // Y axis ticks
-    let y = ymin
-    while y <= ymax {
+    for y in _step-values(ymin, ymax, ystep) {
       if calc.abs(y) > 0.001 {  // Skip origin
         cetz-draw.line((-tick-size, y), (tick-size, y), stroke: stroke)
       }
-      y = y + ystep
     }
   }
 
   // Labels
   if labels {
     // X axis tick labels
-    let x = xmin
-    while x <= xmax {
+    for x in _step-values(xmin, xmax, xstep) {
       if calc.abs(x) > 0.001 {  // Skip origin
         let label-text = if calc.rem(x, 1) == 0 { str(int(x)) } else { str(x) }
         cetz-draw.content((x, -0.3), text(size: 8pt)[#label-text])
       }
-      x = x + xstep
     }
 
     // Y axis tick labels
-    let y = ymin
-    while y <= ymax {
+    for y in _step-values(ymin, ymax, ystep) {
       if calc.abs(y) > 0.001 {  // Skip origin
         let label-text = if calc.rem(y, 1) == 0 { str(int(y)) } else { str(y) }
         cetz-draw.content((-0.3, y), text(size: 8pt)[#label-text])
       }
-      y = y + ystep
     }
 
     // Axis labels
@@ -1858,24 +1578,20 @@
 
   // X axis ticks
   if ticks {
-    let x = xmin
-    while x <= xmax {
+    for x in _step-values(xmin, xmax, xstep) {
       if calc.abs(x) > 0.001 {
         cetz-draw.line((x, -tick-size), (x, tick-size), stroke: stroke)
       }
-      x = x + xstep
     }
   }
 
   // Labels
   if labels {
-    let x = xmin
-    while x <= xmax {
+    for x in _step-values(xmin, xmax, xstep) {
       if calc.abs(x) > 0.001 {
         let label-text = if calc.rem(x, 1) == 0 { str(int(x)) } else { str(x) }
         cetz-draw.content((x, -0.3), text(size: 8pt)[#label-text])
       }
-      x = x + xstep
     }
     cetz-draw.content((xmax + 0.3, 0), label)
   }
@@ -1901,24 +1617,20 @@
 
   // Y axis ticks
   if ticks {
-    let y = ymin
-    while y <= ymax {
+    for y in _step-values(ymin, ymax, ystep) {
       if calc.abs(y) > 0.001 {
         cetz-draw.line((-tick-size, y), (tick-size, y), stroke: stroke)
       }
-      y = y + ystep
     }
   }
 
   // Labels
   if labels {
-    let y = ymin
-    while y <= ymax {
+    for y in _step-values(ymin, ymax, ystep) {
       if calc.abs(y) > 0.001 {
         let label-text = if calc.rem(y, 1) == 0 { str(int(y)) } else { str(y) }
         cetz-draw.content((-0.3, y), text(size: 8pt)[#label-text])
       }
-      y = y + ystep
     }
     cetz-draw.content((0, ymax + 0.3), label)
   }
@@ -1939,261 +1651,3 @@
   cetz-draw.content((x, y), content, angle: angle, anchor: anchor)
 }
 
-// =============================================================================
-// CLIPPING (Line Clipping to Rectangle)
-// =============================================================================
-
-/// Global clip region state key
-#let _clip-region-key = "ctz-clip-region"
-
-/// Set global clip region
-/// Usage: set-clip-region(cetz-draw, xmin, ymin, xmax, ymax)
-#let set-clip-region(cetz-draw, xmin, ymin, xmax, ymax) = {
-  cetz-draw.set-ctx(ctx => {
-    ctx.shared-state.insert(_clip-region-key, (xmin: xmin, ymin: ymin, xmax: xmax, ymax: ymax))
-    ctx
-  })
-}
-
-/// Clear global clip region
-#let clear-clip-region(cetz-draw) = {
-  cetz-draw.set-ctx(ctx => {
-    if _clip-region-key in ctx.shared-state {
-      let _ = ctx.shared-state.remove(_clip-region-key)
-    }
-    ctx
-  })
-}
-
-/// Get current clip region (returns none if not set)
-#let get-clip-region(ctx) = {
-  ctx.shared-state.at(_clip-region-key, default: none)
-}
-
-// Cohen-Sutherland outcodes
-#let _INSIDE = 0
-#let _LEFT = 1
-#let _RIGHT = 2
-#let _BOTTOM = 4
-#let _TOP = 8
-
-/// Compute the outcode for a point relative to a rectangle
-#let _compute-outcode(x, y, xmin, ymin, xmax, ymax) = {
-  let code = _INSIDE
-  if x < xmin { code = code + _LEFT }
-  else if x > xmax { code = code + _RIGHT }
-  if y < ymin { code = code + _BOTTOM }
-  else if y > ymax { code = code + _TOP }
-  code
-}
-
-/// Cohen-Sutherland line clipping algorithm
-/// Returns none if line is completely outside, or ((x0, y0), (x1, y1)) if clipped
-#let clip-line-to-rect(x0, y0, x1, y1, xmin, ymin, xmax, ymax) = {
-  let outcode0 = _compute-outcode(x0, y0, xmin, ymin, xmax, ymax)
-  let outcode1 = _compute-outcode(x1, y1, xmin, ymin, xmax, ymax)
-
-  let iterations = 0
-  let max-iterations = 20
-
-  while iterations < max-iterations {
-    iterations = iterations + 1
-
-    // Check if both points inside (all outcode bits are 0)
-    let both-inside = (outcode0 == 0 and outcode1 == 0)
-    if both-inside {
-      return ((x0, y0), (x1, y1))
-    }
-
-    // Check if bitwise AND is non-zero (both outside same edge)
-    let both-left = (calc.rem(outcode0, 2) == 1) and (calc.rem(outcode1, 2) == 1)
-    let both-right = (calc.rem(calc.quo(outcode0, 2), 2) == 1) and (calc.rem(calc.quo(outcode1, 2), 2) == 1)
-    let both-bottom = (calc.rem(calc.quo(outcode0, 4), 2) == 1) and (calc.rem(calc.quo(outcode1, 4), 2) == 1)
-    let both-top = (calc.rem(calc.quo(outcode0, 8), 2) == 1) and (calc.rem(calc.quo(outcode1, 8), 2) == 1)
-
-    if both-left or both-right or both-bottom or both-top {
-      return none  // Line completely outside
-    }
-
-    // At least one point outside, pick it
-    let outcode-out = if outcode0 != 0 { outcode0 } else { outcode1 }
-
-    let x = 0
-    let y = 0
-
-    // Find intersection point
-    if calc.rem(calc.quo(outcode-out, 8), 2) == 1 {
-      // Point is above
-      x = x0 + (x1 - x0) * (ymax - y0) / (y1 - y0)
-      y = ymax
-    } else if calc.rem(calc.quo(outcode-out, 4), 2) == 1 {
-      // Point is below
-      x = x0 + (x1 - x0) * (ymin - y0) / (y1 - y0)
-      y = ymin
-    } else if calc.rem(calc.quo(outcode-out, 2), 2) == 1 {
-      // Point is to the right
-      y = y0 + (y1 - y0) * (xmax - x0) / (x1 - x0)
-      x = xmax
-    } else if calc.rem(outcode-out, 2) == 1 {
-      // Point is to the left
-      y = y0 + (y1 - y0) * (xmin - x0) / (x1 - x0)
-      x = xmin
-    }
-
-    // Replace outside point with intersection
-    if outcode-out == outcode0 {
-      x0 = x
-      y0 = y
-      outcode0 = _compute-outcode(x0, y0, xmin, ymin, xmax, ymax)
-    } else {
-      x1 = x
-      y1 = y
-      outcode1 = _compute-outcode(x1, y1, xmin, ymin, xmax, ymax)
-    }
-  }
-
-  // If we get here, return what we have
-  if outcode0 == 0 and outcode1 == 0 {
-    return ((x0, y0), (x1, y1))
-  }
-  none
-}
-
-/// Draw a line clipped to a rectangle boundary
-/// Usage: draw-clipped-line(cetz-draw, p1, p2, xmin, ymin, xmax, ymax, stroke: blue)
-#let draw-clipped-line(cetz-draw, p1, p2, xmin, ymin, xmax, ymax, stroke: black) = {
-  cetz-draw.get-ctx(ctx => {
-    let (_, c1) = cetz.coordinate.resolve(ctx, p1)
-    let (_, c2) = cetz.coordinate.resolve(ctx, p2)
-
-    let result = clip-line-to-rect(c1.at(0), c1.at(1), c2.at(0), c2.at(1), xmin, ymin, xmax, ymax)
-
-    if result != none {
-      let ((x0, y0), (x1, y1)) = result
-      cetz-draw.line((x0, y0), (x1, y1), stroke: stroke)
-    }
-  })
-}
-
-/// Draw an extended line clipped to a rectangle boundary
-/// This is the main function for drawing "infinite" lines that are clipped to the canvas
-/// Usage: draw-clipped-line-add(cetz-draw, pt-func, p1-name, p2-name, bounds, add: (10, 10), stroke: black)
-#let draw-clipped-line-add(cetz-draw, pt-func, p1-name, p2-name, xmin, ymin, xmax, ymax, add: (10, 10), stroke: black) = {
-  cetz-draw.get-ctx(ctx => {
-    let (_, c1) = cetz.coordinate.resolve(ctx, pt-func(p1-name))
-    let (_, c2) = cetz.coordinate.resolve(ctx, pt-func(p2-name))
-
-    let dx = c2.at(0) - c1.at(0)
-    let dy = c2.at(1) - c1.at(1)
-    let len = calc.sqrt(dx*dx + dy*dy)
-
-    if len < 0.001 { return }
-
-    // Normalize direction
-    let ux = dx / len
-    let uy = dy / len
-
-    // Extend the line
-    let add-left = if type(add) == array { add.at(0) } else { add }
-    let add-right = if type(add) == array { add.at(1) } else { add }
-
-    let x0 = c1.at(0) - ux * add-left * len
-    let y0 = c1.at(1) - uy * add-left * len
-    let x1 = c2.at(0) + ux * add-right * len
-    let y1 = c2.at(1) + uy * add-right * len
-
-    // Clip to rectangle
-    let result = clip-line-to-rect(x0, y0, x1, y1, xmin, ymin, xmax, ymax)
-
-    if result != none {
-      let ((cx0, cy0), (cx1, cy1)) = result
-      cetz-draw.line((cx0, cy0), (cx1, cy1), stroke: stroke)
-    }
-  })
-}
-
-/// Draw a rectangle boundary (for showing the clip region)
-#let draw-clip-boundary(cetz-draw, xmin, ymin, xmax, ymax, stroke: black + 0.5pt) = {
-  cetz-draw.rect((xmin, ymin), (xmax, ymax), stroke: stroke, fill: none)
-}
-
-/// Draw the global clip boundary (uses stored clip region)
-#let draw-global-clip-boundary(cetz-draw, stroke: black + 0.5pt) = {
-  cetz-draw.get-ctx(ctx => {
-    let clip = get-clip-region(ctx)
-    if clip != none {
-      cetz-draw.rect((clip.xmin, clip.ymin), (clip.xmax, clip.ymax), stroke: stroke, fill: none)
-    }
-  })
-}
-
-/// Draw an extended line using the global clip region
-/// This is the main function for drawing "infinite" lines that are automatically clipped
-/// Usage: draw-line-global-clip(cetz-draw, pt-func, p1-name, p2-name, add: (10, 10), stroke: black)
-#let draw-line-global-clip(cetz-draw, pt-func, p1-name, p2-name, add: (10, 10), stroke: black) = {
-  cetz-draw.get-ctx(ctx => {
-    let clip = get-clip-region(ctx)
-    if clip == none {
-      // No clip region set, draw unclipped extended line
-      let (_, c1) = cetz.coordinate.resolve(ctx, pt-func(p1-name))
-      let (_, c2) = cetz.coordinate.resolve(ctx, pt-func(p2-name))
-
-      let dx = c2.at(0) - c1.at(0)
-      let dy = c2.at(1) - c1.at(1)
-
-      let (add-before, add-after) = if type(add) == array { add } else { (add, add) }
-
-      let start = (c1.at(0) - add-before * dx, c1.at(1) - add-before * dy)
-      let end = (c2.at(0) + add-after * dx, c2.at(1) + add-after * dy)
-
-      cetz-draw.line(start, end, stroke: stroke)
-    } else {
-      // Use the global clip region
-      let (_, c1) = cetz.coordinate.resolve(ctx, pt-func(p1-name))
-      let (_, c2) = cetz.coordinate.resolve(ctx, pt-func(p2-name))
-
-      let dx = c2.at(0) - c1.at(0)
-      let dy = c2.at(1) - c1.at(1)
-      let len = calc.sqrt(dx*dx + dy*dy)
-
-      if len < 0.001 { return }
-
-      let ux = dx / len
-      let uy = dy / len
-
-      let add-left = if type(add) == array { add.at(0) } else { add }
-      let add-right = if type(add) == array { add.at(1) } else { add }
-
-      let x0 = c1.at(0) - ux * add-left * len
-      let y0 = c1.at(1) - uy * add-left * len
-      let x1 = c2.at(0) + ux * add-right * len
-      let y1 = c2.at(1) + uy * add-right * len
-
-      let result = clip-line-to-rect(x0, y0, x1, y1, clip.xmin, clip.ymin, clip.xmax, clip.ymax)
-
-      if result != none {
-        let ((cx0, cy0), (cx1, cy1)) = result
-        cetz-draw.line((cx0, cy0), (cx1, cy1), stroke: stroke)
-      }
-    }
-  })
-}
-
-/// Draw a simple segment using global clip region if set
-#let draw-segment-global-clip(cetz-draw, pt-func, p1-name, p2-name, stroke: black) = {
-  cetz-draw.get-ctx(ctx => {
-    let clip = get-clip-region(ctx)
-    let (_, c1) = cetz.coordinate.resolve(ctx, pt-func(p1-name))
-    let (_, c2) = cetz.coordinate.resolve(ctx, pt-func(p2-name))
-
-    if clip == none {
-      cetz-draw.line(c1, c2, stroke: stroke)
-    } else {
-      let result = clip-line-to-rect(c1.at(0), c1.at(1), c2.at(0), c2.at(1), clip.xmin, clip.ymin, clip.xmax, clip.ymax)
-      if result != none {
-        let ((x0, y0), (x1, y1)) = result
-        cetz-draw.line((x0, y0), (x1, y1), stroke: stroke)
-      }
-    }
-  })
-}

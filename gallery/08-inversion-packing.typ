@@ -1,4 +1,4 @@
-#import "@preview/ctz-euclide:0.1.0": *
+#import "@preview/ctz-euclide:0.2.0": *
 
 #set page(width: auto, height: auto, margin: 0.3cm, fill: rgb(95%, 95%, 80%))
 

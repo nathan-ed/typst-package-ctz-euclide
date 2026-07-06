@@ -1,8 +1,8 @@
-#import "@preview/ctz-euclide:0.1.0": *
+#import "@preview/ctz-euclide:0.2.0": *
 
 #set page(width: auto, height: auto, margin: 0.3cm)
 
-#ctz-canvas(length: 0.7cm, {
+#ctz-canvas(length: 0.7cm, clip-canvas: (-4, -4, 6, 10), {
   import cetz.draw: *
   ctz-init()
 
@@ -17,12 +17,9 @@
   ctz-def-inversion("l1i", "l1", O, R)
   ctz-def-inversion("l2i", "l2", O, R)
 
-  // Clip to a clean view, similar to the reference figure
-  ctz-set-clip(-2, -2, 4, 8)
-
   // Draw infinite lines (clipped)
-  ctz-draw-line-global-clip((-1, 0), (-1, 1), add: (10, 10), stroke: blue + 0.4pt)
-  ctz-draw-line-global-clip((1, 0), (1, 1), add: (10, 10), stroke: green + 0.4pt)
+  ctz-draw-line-add((-1, 0), (-1, 1), add: (10, 10), stroke: blue + 0.4pt)
+  ctz-draw-line-add((1, 0), (1, 1), add: (10, 10), stroke: green + 0.4pt)
   ctz-draw("l1i", stroke: blue + 0.4pt)
   ctz-draw("l2i", stroke: green + 0.4pt)
 

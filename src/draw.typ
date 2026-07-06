@@ -337,8 +337,8 @@
 
 /// Calculate the angle in degrees from vertex, going from ray to a to ray to b (counterclockwise)
 #let calc-angle-deg(a, vertex, b) = {
-  let angle-a = calc.atan2(a.at(1) - vertex.at(1), a.at(0) - vertex.at(0))
-  let angle-b = calc.atan2(b.at(1) - vertex.at(1), b.at(0) - vertex.at(0))
+  let angle-a = util.angle-of(a.at(0) - vertex.at(0), a.at(1) - vertex.at(1))
+  let angle-b = util.angle-of(b.at(0) - vertex.at(0), b.at(1) - vertex.at(1))
 
   let diff = angle-b - angle-a
   // Normalize to [0, 360)
@@ -412,14 +412,8 @@
 #let angle-of-point(center, point) = {
   let dx = point.at(0) - center.at(0)
   let dy = point.at(1) - center.at(1)
-  let rad = calc.atan2(dy, dx)
-  // Convert to degrees, atan2 returns radians in typst
-  if type(rad) == angle {
-    if rad < 0deg { rad + 360deg } else { rad }
-  } else {
-    let deg = rad * 180 / calc.pi
-    if deg < 0 { deg + 360 } else { deg }
-  }
+  let rad = util.angle-of(dx, dy)
+  if rad < 0deg { rad + 360deg } else { rad }
 }
 
 /// Generate tick mark on arc

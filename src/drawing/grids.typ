@@ -1,7 +1,7 @@
 // ctz-euclide/src/drawing/grids.typ
 // Grid and lattice positioning helpers for structured diagrams
 
-#import "@preview/cetz:0.4.2" as cetz
+#import "@preview/cetz:0.5.2" as cetz
 #import "../util.typ"
 
 // Note: Drawing functions receive cetz.draw as cetz-draw parameter

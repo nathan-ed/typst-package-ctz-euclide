@@ -1,7 +1,7 @@
 // ctz-euclide/src/drawing/primitives.typ
 // Basic drawing primitives (points, segments, marks)
 
-#import "@preview/cetz:0.4.2" as cetz
+#import "@preview/cetz:0.5.2" as cetz
 #import "../util.typ"
 #import "../draw.typ"
 
@@ -113,7 +113,7 @@
     let (_, t) = cetz.coordinate.resolve(ctx, through)
 
     let radius = util.dist(c, t)
-    let theta = calc.atan2(t.at(1) - c.at(1), t.at(0) - c.at(0))
+    let theta = util.angle-of(t.at(0) - c.at(0), t.at(1) - c.at(1))
 
     // Convert to an angle value (Typst angle type) if needed.
     let theta-angle = util.to-angle(if type(theta) == angle { theta / 1deg } else { theta * 180 / calc.pi })
@@ -124,7 +124,8 @@
       start: theta-angle - half-delta,
       stop: theta-angle + half-delta,
       radius: radius,
-      stroke: color + stroke-width
+      anchor: "origin",
+      stroke: color + stroke-width,
     )
   })
 }
@@ -137,8 +138,8 @@
     let (_, e) = cetz.coordinate.resolve(ctx, end-pt)
 
     let radius = util.dist(c, s)
-    let start-angle = calc.atan2(s.at(1) - c.at(1), s.at(0) - c.at(0))
-    let end-angle = calc.atan2(e.at(1) - c.at(1), e.at(0) - c.at(0))
+    let start-angle = util.angle-of(s.at(0) - c.at(0), s.at(1) - c.at(1))
+    let end-angle = util.angle-of(e.at(0) - c.at(0), e.at(1) - c.at(1))
 
     // Convert to degrees
     let to-deg(a) = if type(a) == angle { a / 1deg } else { a * 180 / calc.pi }

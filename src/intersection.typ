@@ -187,7 +187,7 @@
   // Handle tangent case
   let h-sq = r0 * r0 - a * a
 
-  if h-sq < epsilon * epsilon {
+  if h-sq < epsilon {
     // Tangent - one point
     return ((p2x, p2y, c0.at(2, default: 0)),)
   }

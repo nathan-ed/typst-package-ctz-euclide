@@ -44,7 +44,7 @@ Find intersections of a line with a circle:
 
 #example(
   [```typst
-  #ctz-canvas(length: 0.7cm, {
+  #ctz-canvas(length: 0.7cm, clip-canvas: (-4, -4, 5, 4), {
     import cetz.draw: *
     ctz-init()
 
@@ -56,8 +56,7 @@ Find intersections of a line with a circle:
 
     ctz-draw("C1", stroke: blue)
     ctz-label-circle("C1", $C_1$, pos: "above", dist: 0.2)
-    ctz-set-clip(-4, -4, 5, 4)
-    ctz-draw-line-global-clip("A", "B", add: (2, 2), stroke: red)
+    ctz-draw-line-add("A", "B", add: (2, 2), stroke: red)
 
     ctz-draw(points: ("O", "I1", "I2"), labels: (
       O: "below",
@@ -75,8 +74,7 @@ Find intersections of a line with a circle:
     ctz-def-lc(("I1", "I2"), "L1", "C1")
     ctz-draw("C1", stroke: blue)
     ctz-label-circle("C1", $C_1$, pos: "above", dist: 0.2)
-    ctz-set-clip(-4, -4, 5, 4)
-    ctz-draw-line-global-clip("A", "B", add: (2, 2), stroke: red)
+    ctz-draw-line-add("A", "B", add: (2, 2), stroke: red)
     ctz-draw(points: ("O", "I1", "I2"), labels: (
       O: "below",
       I1: "above left",
@@ -84,6 +82,7 @@ Find intersections of a line with a circle:
     ))
   },
   length: 0.7cm,
+  clip-canvas: (-4, -4, 5, 4),
 )
 
 Named line/circle form:
@@ -146,4 +145,3 @@ ctz-def-cc(("I1", "I2"), "C1", "C2")
 ```
 
 #pagebreak()
-

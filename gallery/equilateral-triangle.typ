@@ -1,4 +1,4 @@
-#import "@preview/ctz-euclide:0.1.0": *
+#import "@preview/ctz-euclide:0.2.0": *
 
 #set page(width: auto, height: auto, margin: 0.3cm)
 
@@ -22,10 +22,10 @@
   ctz-draw-angle("B", "C", "A", label: $60°$, radius: 0.6, stroke: green + 0.8pt)
   ctz-draw-angle("C", "A", "B", label: $60°$, radius: 0.8, stroke: orange + 0.8pt)
 
-  // Draw circles at vertices
-  ctz-draw(circle-r: (_pt("A"), 0.3), stroke: green + 1pt)
-  ctz-draw(circle-r: (_pt("B"), 0.3), stroke: green + 1pt)
-  ctz-draw(circle-r: (_pt("C"), 0.3), stroke: orange + 1pt)
+  // Compass construction arcs: C is where the arcs centered at A and B
+  // (with radius AB) intersect
+  ctz-draw(arc: (center: "A", start: "B", end: "C"), delta: 8, stroke: gray + 0.7pt)
+  ctz-draw(arc: (center: "B", start: "C", end: "A"), delta: 8, stroke: gray + 0.7pt)
 
   // Find center (all centers coincide in equilateral triangle)
   ctz-def-centroid("G", "A", "B", "C")

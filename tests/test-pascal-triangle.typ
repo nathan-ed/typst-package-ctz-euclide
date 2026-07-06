@@ -1,7 +1,7 @@
 // Test: Pascal's Triangle using ctz-euclide declarative helpers
-#import "@preview/cetz:0.4.2" as cetz
+#import "@preview/cetz:0.5.2" as cetz
 #import "../src/lib.typ" as euclide
-#import "../src/drawing.typ": *
+#import "../src/lib.typ": *
 
 #set page(width: auto, height: auto, margin: 0.8cm)
 
@@ -33,7 +33,7 @@
   )
 
   // --- Row Labels (using helper) ---
-  draw-pascal-row-labels(
+  draw-row-labels(
     cetz.draw,
     rows,
     h-spacing: h-spacing,
@@ -45,7 +45,7 @@
   )
 
   // --- Diagonal Labels (using helper) ---
-  draw-pascal-diagonal-labels(
+  draw-diagonal-labels(
     cetz.draw,
     rows,
     h-spacing: h-spacing,
@@ -59,9 +59,9 @@
 
   // --- Highlights (using helpers) ---
   // Get positions using pascal-pos
-  let pos-5-3 = pascal-pos(5, 3, h-spacing: h-spacing, v-spacing: v-spacing)
-  let pos-4-2 = pascal-pos(4, 2, h-spacing: h-spacing, v-spacing: v-spacing)
-  let pos-4-3 = pascal-pos(4, 3, h-spacing: h-spacing, v-spacing: v-spacing)
+  let pos-5-3 = triangular-pos(5, 3, h-spacing: h-spacing, v-spacing: v-spacing)
+  let pos-4-2 = triangular-pos(4, 2, h-spacing: h-spacing, v-spacing: v-spacing)
+  let pos-4-3 = triangular-pos(4, 3, h-spacing: h-spacing, v-spacing: v-spacing)
 
   // Filled highlight for (5, 3)
   highlight-fill(cetz.draw, pos-5-3, radius: 0.35, fill: colors.highlight-red)

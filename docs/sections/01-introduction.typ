@@ -22,7 +22,7 @@
 Import the package in your Typst document:
 
 ```typst
-#import "@preview/ctz-euclide:0.1.0": *
+#import "@preview/ctz-euclide:0.2.0": *
 ```
 
 All figures use the `ctz-canvas` function (re-exported from CeTZ):

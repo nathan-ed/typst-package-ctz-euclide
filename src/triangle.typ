@@ -195,11 +195,13 @@
   let d = util.dist(I, N)
   if util.approx-zero(d) { return I }
 
+  // The nine-point circle (center N, radius R9) is internally tangent to the
+  // incircle (center I, radius r): the tangency point lies on ray N→I at
+  // distance R9 from N (which is r past I, since d = R9 - r).
   let dx = (I.at(0) - N.at(0)) / d
   let dy = (I.at(1) - N.at(1)) / d
-  let dist-from-N = R9 - r
 
-  (N.at(0) + dist-from-N * dx, N.at(1) + dist-from-N * dy, a.at(2, default: 0))
+  (N.at(0) + R9 * dx, N.at(1) + R9 * dy, a.at(2, default: 0))
 }
 
 /// Calculate the Mittenpunkt
@@ -223,8 +225,10 @@
 }
 
 /// Calculate an excenter of triangle ABC
-/// vertex: "a", "b", or "c" to specify which excircle
+/// vertex: "a", "b", or "c" (case-insensitive) to specify which excircle
 #let excenter-raw(a, b, c, vertex: "a") = {
+  let vertex = lower(vertex)
+  assert(vertex in ("a", "b", "c"), message: "excenter vertex must be \"a\", \"b\" or \"c\", got " + repr(vertex))
   let la = util.dist(b, c)
   let lb = util.dist(a, c)
   let lc = util.dist(a, b)
@@ -252,6 +256,8 @@
 
 /// Calculate the exradius opposite to vertex
 #let exradius-raw(a, b, c, vertex: "a") = {
+  let vertex = lower(vertex)
+  assert(vertex in ("a", "b", "c"), message: "exradius vertex must be \"a\", \"b\" or \"c\", got " + repr(vertex))
   let la = util.dist(b, c)
   let lb = util.dist(a, c)
   let lc = util.dist(a, b)

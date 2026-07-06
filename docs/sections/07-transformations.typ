@@ -17,7 +17,7 @@ Rotate a point around a center:
     ctz-def-rotation("B", "A", "O", 60)
     ctz-def-rotation("C", "A", "O", 120)
 
-    ctz-draw(circle-r: (_pt("O"), 3), stroke: gray.lighten(50%))
+    ctz-draw(circle-r: ("O", 3), stroke: gray.lighten(50%))
     ctz-draw(segment: ("O", "A"), stroke: blue)
     ctz-draw(segment: ("O", "B"), stroke: blue)
     ctz-draw(segment: ("O", "C"), stroke: blue)
@@ -37,7 +37,7 @@ Rotate a point around a center:
     ctz-def-points(O: (2, 2), A: (5, 2))
     ctz-def-rotation("B", "A", "O", 60)
     ctz-def-rotation("C", "A", "O", 120)
-    ctz-draw(circle-r: (_pt("O"), 3), stroke: gray.lighten(50%))
+    ctz-draw(circle-r: ("O", 3), stroke: gray.lighten(50%))
     ctz-draw(segment: ("O", "A"), stroke: blue)
     ctz-draw(segment: ("O", "B"), stroke: blue)
     ctz-draw(segment: ("O", "C"), stroke: blue)
@@ -179,10 +179,9 @@ Invert points, lines, or circles through a circle:
 
 #example(
   [```typst
-  #ctz-canvas(length: 0.7cm, {
+  #ctz-canvas(length: 0.7cm, clip-canvas: (-5, -4.5, 5, 4), {
     import cetz.draw: *
     ctz-init()
-    ctz-set-clip(-5, -4.5, 5, 4)
 
     ctz-def-points(O: (0, 0), A: (-4, -1), B: (4, -1), C: (1.8, 1))
     ctz-def-line("L", "A", "B")
@@ -191,7 +190,7 @@ Invert points, lines, or circles through a circle:
     ctz-def-inversion("Li", "L", "O", 3)
     ctz-def-inversion("C1i", "C1", "O", 3)
 
-    ctz-draw(circle-r: (_pt("O"), 3), stroke: black + 1pt)
+    ctz-draw(circle-r: ("O", 3), stroke: black + 1pt)
     ctz-draw("L", stroke: gray + 0.7pt)
     ctz-draw("C1", stroke: gray + 0.7pt)
     ctz-draw("Li", stroke: blue + 1pt)
@@ -202,13 +201,12 @@ Invert points, lines, or circles through a circle:
   {
     import cetz.draw: *
     ctz-init()
-    ctz-set-clip(-5, -4.5, 5, 4)
     ctz-def-points(O: (0, 0), A: (-4, -1), B: (4, -1), C: (1.8, 1))
     ctz-def-line("L", "A", "B")
     ctz-def-circle("C1", "C", radius: 1.1)
     ctz-def-inversion("Li", "L", "O", 3)
     ctz-def-inversion("C1i", "C1", "O", 3)
-    ctz-draw(circle-r: (_pt("O"), 3), stroke: black + 1pt)
+    ctz-draw(circle-r: ("O", 3), stroke: black + 1pt)
     ctz-draw("L", stroke: gray + 0.7pt)
     ctz-draw("C1", stroke: gray + 0.7pt)
     ctz-draw("Li", stroke: blue + 1pt)
@@ -300,4 +298,3 @@ The `ctz-def-rotation()` function works on all object types: points, lines, circ
 For lines, both endpoints are rotated. For circles, the center is rotated while radius remains constant. For polygons, all constituent points are rotated in place.
 
 #pagebreak()
-

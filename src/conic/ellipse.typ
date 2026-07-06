@@ -106,7 +106,7 @@
   if calc.abs(dx) < util.eps and calc.abs(dy) < util.eps {
     return center
   }
-  let theta = calc.atan2(dy, dx)
+  let theta = util.angle-of(dx, dy)
   ellipse-angpoint-raw(center, rx, ry, angle: angle, theta: theta, from-center: true)
 }
 
@@ -125,7 +125,7 @@
     return ()
   }
 
-  let phi = calc.atan2(B, A)
+  let phi = util.angle-of(A, B)
   let acos-arg = util.clamp(1 / calc.max(R, 1), -1, 1)
   let alpha = calc.acos(acos-arg)
 

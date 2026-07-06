@@ -19,13 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-ACKNOWLEDGMENT:
-
-This package is a port of the LaTeX tkz-euclide package created by Alain Matthes.
-The original tkz-euclide package can be found at: https://ctan.org/pkg/tkz-euclide
-
-We are grateful to Alain Matthes for creating the original package, without which
-this Typst port would not have been possible.

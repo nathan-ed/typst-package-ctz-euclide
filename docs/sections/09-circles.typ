@@ -367,3 +367,63 @@ All defined circles can be:
 - Used in circle-circle intersections: `ctz-def-cc(("P", "Q"), "circle1", "circle2")`
 - Used in line-circle intersections: `ctz-def-lc(("P", "Q"), line, "circle")`
 
+
+
+== Arcs, Sectors and Semicircles
+
+Arcs are drawn around a *center*, from a start point to an end point
+(counter-clockwise). The radius is the distance from the center to the start
+point.
+
+#example([```typst
+#ctz-canvas({
+  ctz-init()
+  ctz-def-points(O: (0, 0), A: (2, 0), B: (0, 2))
+  ctz-draw(points: ("O", "A", "B"), labels: true)
+  ctz-draw-arc("O", "A", "B", stroke: blue + 1pt)
+  ctz-draw-arc-r((0, 0), 1.3, 10deg, 80deg, stroke: red, arrows: "->")
+})
+```],
+{
+  ctz-init()
+  ctz-def-points(O: (0, 0), A: (2, 0), B: (0, 2))
+  ctz-draw(points: ("O", "A", "B"), labels: true)
+  ctz-draw-arc("O", "A", "B", stroke: blue + 1pt)
+  ctz-draw-arc-r((0, 0), 1.3, 10deg, 80deg, stroke: red, arrows: "->")
+})
+
+*Parameters — `ctz-draw-arc(center, start, end, ..)`:*
+- `center`, `start`, `end` — point names or coordinates; the arc runs from
+  `start` to `end` around `center`
+- `stroke` — stroke style (default: `black`)
+- `arrows` — `"->"`, `"<-"`, `"<->"` or `none`
+- `delta` — extend the arc by this many degrees on both sides
+
+*Parameters — `ctz-draw-arc-r(center, radius, start-angle, end-angle, ..)`:*
+- `radius` — number (canvas units)
+- `start-angle`, `end-angle` — Typst angles (e.g. `30deg`)
+
+#example([```typst
+#ctz-canvas({
+  ctz-init()
+  ctz-def-points(A: (0, 0), B: (3, 0), O: (4.5, 0), P: (6, 0.6), Q: (5, 1.6))
+  ctz-draw-segment("A", "B")
+  ctz-draw-semicircle("A", "B", stroke: blue)
+  ctz-draw-semicircle("A", "B", stroke: gray, above: false)
+  ctz-draw-sector("O", "P", "Q", stroke: red, fill: red.lighten(85%))
+  ctz-draw(points: ("A", "B", "O"), labels: true)
+})
+```],
+{
+  ctz-init()
+  ctz-def-points(A: (0, 0), B: (3, 0), O: (4.5, 0), P: (6, 0.6), Q: (5, 1.6))
+  ctz-draw-segment("A", "B")
+  ctz-draw-semicircle("A", "B", stroke: blue)
+  ctz-draw-semicircle("A", "B", stroke: gray, above: false)
+  ctz-draw-sector("O", "P", "Q", stroke: red, fill: red.lighten(85%))
+  ctz-draw(points: ("A", "B", "O"), labels: true)
+})
+
+*Parameters — `ctz-draw-semicircle(a, b, ..)`:* `above: true` picks the side
+of the diameter AB. *`ctz-draw-sector(center, start, end, ..)`* accepts
+`stroke` and `fill`.

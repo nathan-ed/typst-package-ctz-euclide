@@ -9,7 +9,7 @@ Construct a perpendicular line through a point:
 
 #example(
   [```typst
-  #ctz-canvas(length: 0.75cm, {
+  #ctz-canvas(length: 0.75cm, clip-canvas: (-0.5, -0.5, 5.5, 3.5), {
     import cetz.draw: *
     ctz-init()
 
@@ -45,16 +45,15 @@ Construct a parallel line through a point:
 
 #example(
   [```typst
-  #ctz-canvas(length: 0.75cm, {
+  #ctz-canvas(length: 0.75cm, clip-canvas: (-0.5, -0.5, 5.5, 3.5), {
     import cetz.draw: *
     ctz-init()
 
     ctz-def-points(A: (0, 0), B: (5, 1), C: (1, 2.5))
     ctz-def-para("P1", "P2", ("A", "B"), "C")
 
-    ctz-set-clip(-0.5, -0.5, 5.5, 3.5)
-    ctz-draw-line-global-clip("A", "B", add: (2, 2), stroke: black)
-    ctz-draw-line-global-clip("P1", "P2", add: (2, 2), stroke: green)
+    ctz-draw-line-add("A", "B", add: (2, 2), stroke: black)
+    ctz-draw-line-add("P1", "P2", add: (2, 2), stroke: green)
 
     ctz-draw(points: ("A", "B", "C"), labels: (
       A: "below",
@@ -68,12 +67,12 @@ Construct a parallel line through a point:
     ctz-init()
     ctz-def-points(A: (0, 0), B: (5, 1), C: (1, 2.5))
     ctz-def-para("P1", "P2", ("A", "B"), "C")
-    ctz-set-clip(-0.5, -0.5, 5.5, 3.5)
-    ctz-draw-line-global-clip("A", "B", add: (2, 2), stroke: black)
-    ctz-draw-line-global-clip("P1", "P2", add: (2, 2), stroke: green)
+    ctz-draw-line-add("A", "B", add: (2, 2), stroke: black)
+    ctz-draw-line-add("P1", "P2", add: (2, 2), stroke: green)
     ctz-draw(points: ("A", "B", "C"), labels: (A: "below", B: "below", C: "above"))
   },
   length: 0.75cm,
+  clip-canvas: (-0.5, -0.5, 5.5, 3.5),
 )
 
 == Angle Bisector — `ctz-def-bisect`
@@ -82,16 +81,15 @@ Construct the bisector of an angle:
 
 #example(
   [```typst
-  #ctz-canvas(length: 0.8cm, {
+  #ctz-canvas(length: 0.8cm, clip-canvas: (-0.5, -0.5, 4.5, 3.5), {
     import cetz.draw: *
     ctz-init()
 
     ctz-def-points(A: (0, 0), B: (4, 0), C: (1, 3))
     ctz-def-bisect("D1", "D2", "C", "A", "B")
 
-    ctz-set-clip(-0.5, -0.5, 4.5, 3.5)
     ctz-draw(line: ("A", "B", "C", "A"), stroke: black)
-    ctz-draw-seg-global-clip("D1", "D2", stroke: red)
+    ctz-draw-segment("D1", "D2", stroke: red)
 
     ctz-draw-angle("A", "C", "B", radius: 0.5, stroke: gray)
     ctz-draw(points: ("A", "B", "C"), labels: (
@@ -106,12 +104,12 @@ Construct the bisector of an angle:
     ctz-init()
     ctz-def-points(A: (0, 0), B: (4, 0), C: (1, 3))
     ctz-def-bisect("D1", "D2", "C", "A", "B")
-    ctz-set-clip(-0.5, -0.5, 4.5, 3.5)
     ctz-draw(line: ("A", "B", "C", "A"), stroke: black)
-    ctz-draw-seg-global-clip("D1", "D2", stroke: red)
+    ctz-draw-segment("D1", "D2", stroke: red)
     ctz-draw-angle("A", "C", "B", radius: 0.5, stroke: gray)
     ctz-draw(points: ("A", "B", "C"), labels: (A: "below", B: "below", C: "above"))
   },
+  clip-canvas: (-0.5, -0.5, 4.5, 3.5),
 )
 
 == Perpendicular Bisector — `ctz-def-mediator`
@@ -120,7 +118,7 @@ Construct the perpendicular bisector of a segment:
 
 #example(
   [```typst
-  #ctz-canvas(length: 0.75cm, {
+  #ctz-canvas(length: 0.75cm, clip-canvas: (-0.5, -0.5, 4.5, 3.5), {
     import cetz.draw: *
     ctz-init()
 
@@ -151,7 +149,7 @@ Construct the perpendicular bisector of a segment:
     ctz-draw(points: ("A", "B", "M"), labels: (A: "left", B: "right", M: "below"))
   },
   length: 0.75cm,
+  clip-canvas: (-0.5, -0.5, 4.5, 3.5),
 )
 
 #pagebreak()
-

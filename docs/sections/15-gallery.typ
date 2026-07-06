@@ -217,7 +217,7 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
     ctz-draw(segment: ("C", "E"), stroke: green.darken(20%) + 0.8pt)
 
     // Center
-    ctz-draw(circle-r: (_pt("O"), 4), stroke: gray.lighten(50%) + 0.5pt)
+    ctz-draw(circle-r: ("O", 4), stroke: gray.lighten(50%) + 0.5pt)
 
     ctz-draw(points: ("A", "B", "C", "D", "E", "O"), labels: (
       A: "right",
@@ -248,7 +248,7 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
   ctz-draw(segment: ("C", "E"), stroke: green.darken(20%) + 0.8pt)
 
   // Center
-  ctz-draw(circle-r: (_pt("O"), 4), stroke: gray.lighten(50%) + 0.5pt)
+  ctz-draw(circle-r: ("O", 4), stroke: gray.lighten(50%) + 0.5pt)
 
   ctz-draw(points: ("A", "B", "C", "D", "E", "O"), labels: (
     A: "right",
@@ -271,7 +271,7 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
     ctz-style(point: (shape: "cross", size: 0.11, stroke: black + 1.2pt))
 
     ctz-def-points(O: (0, 0), R: (4, 0))
-    ctz-draw(circle-r: (_pt("O"), 4), stroke: black + 1.2pt)
+    ctz-draw(circle-r: ("O", 4), stroke: black + 1.2pt)
 
     // Place points on circle: A left, C right, B at bottom
     ctz-def-rotation("A", "R", "O", 150)
@@ -321,7 +321,7 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
   ctz-style(point: (shape: "cross", size: 0.11, stroke: black + 1.2pt))
 
   ctz-def-points(O: (0, 0), R: (4, 0))
-  ctz-draw(circle-r: (_pt("O"), 4), stroke: black + 1.2pt)
+  ctz-draw(circle-r: ("O", 4), stroke: black + 1.2pt)
 
   // Place points on circle
   ctz-def-rotation("A", "R", "O", 150)
@@ -451,9 +451,6 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
 
     ctz-def-points(A: (0, 0), B: (8, 0), C: (2.5, 5.5))
 
-    // Set clip region
-    ctz-set-clip(-1.5, -1.5, 9.5, 7)
-
     // Triangle
     ctz-draw(line: ("A", "B", "C", "A"), stroke: black + 1.5pt)
 
@@ -462,9 +459,9 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
     ctz-def-perp("Hb1", "Hb2", ("A", "C"), "B")
     ctz-def-perp("Hc1", "Hc2", ("A", "B"), "C")
 
-    ctz-draw-line-global-clip("A", "Ha1", add: (1, 1.5), stroke: blue + 1pt)
-    ctz-draw-line-global-clip("B", "Hb1", add: (1, 1.5), stroke: red + 1pt)
-    ctz-draw-line-global-clip("C", "Hc1", add: (1, 2.5), stroke: green.darken(20%) + 1pt)
+    ctz-draw-line-add("A", "Ha1", add: (1, 1.5), stroke: blue + 1pt)
+    ctz-draw-line-add("B", "Hb1", add: (1, 1.5), stroke: red + 1pt)
+    ctz-draw-line-add("C", "Hc1", add: (1, 2.5), stroke: green.darken(20%) + 1pt)
 
     // Orthocenter
     ctz-def-orthocenter("H", "A", "B", "C")
@@ -490,13 +487,12 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
     ))
   },
   code: [```typst
-#ctz-canvas(length: 0.85cm, {
+#ctz-canvas(length: 0.85cm, clip-canvas: (-1.5, -1.5, 9.5, 7), {
   import cetz.draw: *
   ctz-init()
   ctz-style(point: (shape: "cross", size: 0.1, stroke: black + 1.2pt))
 
   ctz-def-points(A: (0, 0), B: (8, 0), C: (2.5, 5.5))
-  ctz-set-clip(-1.5, -1.5, 9.5, 7)
 
   // Triangle
   ctz-draw(line: ("A", "B", "C", "A"), stroke: black + 1.5pt)
@@ -506,9 +502,9 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
   ctz-def-perp("Hb1", "Hb2", ("A", "C"), "B")
   ctz-def-perp("Hc1", "Hc2", ("A", "B"), "C")
 
-  ctz-draw-line-global-clip("A", "Ha1", add: (1, 1.5), stroke: blue + 1pt)
-  ctz-draw-line-global-clip("B", "Hb1", add: (1, 1.5), stroke: red + 1pt)
-  ctz-draw-line-global-clip("C", "Hc1", add: (1, 2.5), stroke: green.darken(20%) + 1pt)
+  ctz-draw-line-add("A", "Ha1", add: (1, 1.5), stroke: blue + 1pt)
+  ctz-draw-line-add("B", "Hb1", add: (1, 1.5), stroke: red + 1pt)
+  ctz-draw-line-add("C", "Hc1", add: (1, 2.5), stroke: green.darken(20%) + 1pt)
 
   // Orthocenter (intersection of altitudes)
   ctz-def-orthocenter("H", "A", "B", "C")
@@ -529,7 +525,8 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
     H: "right"
   ))
 })
-```],
+  ```],
+  clip-canvas: (-1.5, -1.5, 9.5, 7),
   length: 0.85cm,
 )
 
@@ -554,10 +551,10 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
     ctz-draw-angle("B", "C", "A", label: $60°$, radius: 0.6, stroke: green + 0.8pt)
     ctz-draw-angle("C", "A", "B", label: $60°$, radius: 0.8, stroke: orange + 0.8pt)
 
-    // Draw circles at vertices
-    ctz-draw(circle-r: (_pt("A"), 0.3), stroke: green + 1pt)
-    ctz-draw(circle-r: (_pt("B"), 0.3), stroke: green + 1pt)
-    ctz-draw(circle-r: (_pt("C"), 0.3), stroke: orange + 1pt)
+    // Compass construction arcs: C is where the arcs centered at A and B
+    // (with radius AB) intersect
+    ctz-draw(arc: (center: "A", start: "B", end: "C"), delta: 8, stroke: gray + 0.7pt)
+    ctz-draw(arc: (center: "B", start: "C", end: "A"), delta: 8, stroke: gray + 0.7pt)
 
     // Find center (all centers coincide in equilateral triangle)
     ctz-def-centroid("G", "A", "B", "C")
@@ -605,10 +602,10 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
   ctz-draw-angle("B", "C", "A", label: $60°$, radius: 0.6, stroke: green + 0.8pt)
   ctz-draw-angle("C", "A", "B", label: $60°$, radius: 0.8, stroke: orange + 0.8pt)
 
-  // Draw circles at vertices
-  ctz-draw(circle-r: (_pt("A"), 0.3), stroke: green + 1pt)
-  ctz-draw(circle-r: (_pt("B"), 0.3), stroke: green + 1pt)
-  ctz-draw(circle-r: (_pt("C"), 0.3), stroke: orange + 1pt)
+  // Compass construction arcs: C is where the arcs centered at A and B
+  // (with radius AB) intersect
+  ctz-draw(arc: (center: "A", start: "B", end: "C"), delta: 8, stroke: gray + 0.7pt)
+  ctz-draw(arc: (center: "B", start: "C", end: "A"), delta: 8, stroke: gray + 0.7pt)
 
   // In equilateral triangle, all centers coincide
   ctz-def-centroid("G", "A", "B", "C")
@@ -642,9 +639,6 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
     // Define triangle
     ctz-def-points("A", (0, 0), "B", (6, 0), "C", (2.5, 5))
 
-    // Set clipping region
-    ctz-set-clip(-1, -1, 7, 6)
-
     // Calculate midpoints
     ctz-def-midpoint("Mab", "A", "B")
     ctz-def-midpoint("Mbc", "B", "C")
@@ -662,9 +656,9 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
     ctz-draw(line: ("A", "B", "C", "A"), stroke: black + 1.5pt)
 
     // Draw perpendicular bisectors (clipped)
-    ctz-draw-seg-global-clip("Pab1", "Pab2", stroke: blue + 0.8pt)
-    ctz-draw-seg-global-clip("Pbc1", "Pbc2", stroke: red + 0.8pt)
-    ctz-draw-seg-global-clip("Pca1", "Pca2", stroke: green + 0.8pt)
+    ctz-draw-segment("Pab1", "Pab2", stroke: blue + 0.8pt)
+    ctz-draw-segment("Pbc1", "Pbc2", stroke: red + 0.8pt)
+    ctz-draw-segment("Pca1", "Pca2", stroke: green + 0.8pt)
 
     // Draw circumcircle
     ctz-draw(circumcircle: ("A", "B", "C"), stroke: purple + 1.2pt)
@@ -691,14 +685,13 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
     ))
   },
   code: [```typst
-#ctz-canvas({
+#ctz-canvas(clip-canvas: (-1, -1, 7, 6), {
   import cetz.draw: *
   ctz-init()
   ctz-style(point: (shape: "dot", size: 0.08, fill: black))
 
   // Define triangle
   ctz-def-points("A", (0, 0), "B", (6, 0), "C", (2.5, 5))
-  ctz-set-clip(-1, -1, 7, 6)
 
   // Calculate midpoints
   ctz-def-midpoint("Mab", "A", "B")
@@ -717,9 +710,9 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
   ctz-draw(line: ("A", "B", "C", "A"), stroke: black + 1.5pt)
 
   // Draw perpendicular bisectors (clipped)
-  ctz-draw-seg-global-clip("Pab1", "Pab2", stroke: blue + 0.8pt)
-  ctz-draw-seg-global-clip("Pbc1", "Pbc2", stroke: red + 0.8pt)
-  ctz-draw-seg-global-clip("Pca1", "Pca2", stroke: green + 0.8pt)
+  ctz-draw-segment("Pab1", "Pab2", stroke: blue + 0.8pt)
+  ctz-draw-segment("Pbc1", "Pbc2", stroke: red + 0.8pt)
+  ctz-draw-segment("Pca1", "Pca2", stroke: green + 0.8pt)
 
   // Draw circumcircle
   ctz-draw(circumcircle: ("A", "B", "C"), stroke: purple + 1.2pt)
@@ -741,6 +734,7 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
   ))
 })
 ```],
+  clip-canvas: (-1, -1, 7, 6),
   length: 0.5cm,
 )
 
@@ -758,7 +752,7 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
     ctz-def-point-on-circle("C", "O", 3, 110)
 
     // Draw circle
-    ctz-draw(circle-r: (_pt("O"), 3), stroke: gray + 0.8pt)
+    ctz-draw(circle-r: ("O", 3), stroke: gray + 0.8pt)
 
     // Draw diameter
     ctz-draw(segment: ("A", "B"), stroke: blue + 1.2pt)
@@ -798,7 +792,7 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
   ctz-def-point-on-circle("C", "O", 3, 110)
 
   // Draw circle and diameter
-  ctz-draw(circle-r: (_pt("O"), 3), stroke: gray + 0.8pt)
+  ctz-draw(circle-r: ("O", 3), stroke: gray + 0.8pt)
   ctz-draw(segment: ("A", "B"), stroke: blue + 1.2pt)
 
   // Draw triangle ACB
@@ -830,8 +824,6 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
     import cetz.draw: *
     ctz-init()
 
-    ctz-set-clip(-6, -5, 6, 6)
-
     ctz-def-points(
       O: (0, 0),
       A: (-5, -1.5),
@@ -848,7 +840,7 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
     ctz-def-inversion("c1i", "c1", "O", 3)
     ctz-def-inversion("c2i", "c2", "O", 3)
 
-    ctz-draw(circle-r: (_pt("O"), 3), stroke: black + 1pt)
+    ctz-draw(circle-r: ("O", 3), stroke: black + 1pt)
 
     ctz-draw("l1", stroke: gray + 0.7pt)
     ctz-draw("c1", stroke: gray + 0.7pt)
@@ -861,11 +853,9 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
     ctz-draw(points: ("O"), labels: (O: "below left"))
   },
   code: [```typst
-#ctz-canvas({
+#ctz-canvas(clip-canvas: (-6, -5, 6, 6), {
   import cetz.draw: *
   ctz-init()
-
-  ctz-set-clip(-6, -5, 6, 6)
 
   ctz-def-points(
     O: (0, 0),
@@ -883,7 +873,7 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
   ctz-def-inversion("c1i", "c1", "O", 3)
   ctz-def-inversion("c2i", "c2", "O", 3)
 
-  ctz-draw(circle-r: (_pt("O"), 3), stroke: black + 1pt)
+  ctz-draw(circle-r: ("O", 3), stroke: black + 1pt)
 
   ctz-draw("l1", stroke: gray + 0.7pt)
   ctz-draw("c1", stroke: gray + 0.7pt)
@@ -896,6 +886,7 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
   ctz-draw(points: ("O"), labels: (O: "below left"))
 })
 ```],
+  clip-canvas: (-6, -5, 6, 6),
   length: 0.7cm,
 )
 
@@ -959,7 +950,9 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
   }
 })
 ```],
-  length: 1.5cm,
+  // The whole packing lives inside a ~0.3-unit disk (inversion shrinks the
+  // far-away circles a lot), so the scale must be large to be legible.
+  length: 22cm,
 )
 
 #full-figure(
@@ -977,10 +970,8 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
     ctz-def-inversion("l1i", "l1", O, R)
     ctz-def-inversion("l2i", "l2", O, R)
 
-    ctz-set-clip(-2, -2, 4, 8)
-
-    ctz-draw-line-global-clip((-1, 0), (-1, 1), add: (10, 10), stroke: blue + 0.4pt)
-    ctz-draw-line-global-clip((1, 0), (1, 1), add: (10, 10), stroke: green + 0.4pt)
+    ctz-draw-line-add((-1, 0), (-1, 1), add: (10, 10), stroke: blue + 0.4pt)
+    ctz-draw-line-add((1, 0), (1, 1), add: (10, 10), stroke: green + 0.4pt)
     ctz-draw("l1i", stroke: blue + 0.4pt)
     ctz-draw("l2i", stroke: green + 0.4pt)
 
@@ -1004,7 +995,7 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
     }
   },
   code: [```typst
-#ctz-canvas({
+#ctz-canvas(clip-canvas: (-4, -4, 6, 10), {
   import cetz.draw: *
   ctz-init()
 
@@ -1017,10 +1008,8 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
   ctz-def-inversion("l1i", "l1", O, R)
   ctz-def-inversion("l2i", "l2", O, R)
 
-  ctz-set-clip(-2, -2, 4, 8)
-
-  ctz-draw-line-global-clip((-1, 0), (-1, 1), add: (10, 10), stroke: blue + 0.4pt)
-  ctz-draw-line-global-clip((1, 0), (1, 1), add: (10, 10), stroke: green + 0.4pt)
+  ctz-draw-line-add((-1, 0), (-1, 1), add: (10, 10), stroke: blue + 0.4pt)
+  ctz-draw-line-add((1, 0), (1, 1), add: (10, 10), stroke: green + 0.4pt)
   ctz-draw("l1i", stroke: blue + 0.4pt)
   ctz-draw("l2i", stroke: green + 0.4pt)
 
@@ -1044,5 +1033,6 @@ The following pages showcase advanced geometric constructions using ctz-euclide.
   }
 })
 ```],
+  clip-canvas: (-4, -4, 6, 10),
   length: 0.7cm,
 )

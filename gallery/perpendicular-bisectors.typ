@@ -1,8 +1,8 @@
-#import "@preview/ctz-euclide:0.1.0": *
+#import "@preview/ctz-euclide:0.2.0": *
 
 #set page(width: auto, height: auto, margin: 0.3cm)
 
-#ctz-canvas({
+#ctz-canvas(clip-canvas: (-1, -1, 7, 6), {
   import cetz.draw: *
 
   ctz-init()
@@ -10,9 +10,6 @@
 
   // Define triangle
   ctz-def-points("A", (0, 0), "B", (6, 0), "C", (2.5, 5))
-
-  // Set clipping region
-  ctz-set-clip(-1, -1, 7, 6)
 
   // Calculate midpoints
   ctz-def-midpoint("Mab", "A", "B")
@@ -31,9 +28,9 @@
   ctz-draw(line: ("A", "B", "C", "A"), stroke: black + 1.5pt)
 
   // Draw perpendicular bisectors (clipped)
-  ctz-draw-seg-global-clip("Pab1", "Pab2", stroke: blue + 0.8pt)
-  ctz-draw-seg-global-clip("Pbc1", "Pbc2", stroke: red + 0.8pt)
-  ctz-draw-seg-global-clip("Pca1", "Pca2", stroke: green + 0.8pt)
+  ctz-draw-segment("Pab1", "Pab2", stroke: blue + 0.8pt)
+  ctz-draw-segment("Pbc1", "Pbc2", stroke: red + 0.8pt)
+  ctz-draw-segment("Pca1", "Pca2", stroke: green + 0.8pt)
 
   // Draw circumcircle
   ctz-draw(circumcircle: ("A", "B", "C"), stroke: purple + 1.2pt)

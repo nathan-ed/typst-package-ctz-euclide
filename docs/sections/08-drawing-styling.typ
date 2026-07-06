@@ -46,6 +46,87 @@ All drawing functions throughout the package reference these variables, so chang
 
 The public API also exports these as `ctz-default-point-stroke-width`, `ctz-default-point-color`, etc., for inspection.
 
+== Automatic Label Placement (Collision Avoidance)
+
+Labels are placed *as close as possible to the requested anchor* while
+avoiding everything that has already been drawn: segments, circles, point
+markers, and other labels. This is *on by default*.
+
+The engine works per label, deterministically:
+
++ Measure the label and build its bounding box (including the standard 5pt
+  gap around the text).
++ Try candidate positions in order of "closeness" to your request: the
+  requested anchor first, then the same anchor pushed slightly farther out,
+  then the neighboring anchors. *Every* full-size position is tried before
+  the font is shrunk (85%, then 70%) — shrinking is a last resort.
++ The first candidate that overlaps nothing wins. If *no* clean spot exists,
+  the least-bad candidate at full size is used (never an unbounded search).
++ If any label of a figure must shrink, *all* labels of that figure are
+  re-placed at the same (smallest needed) scale — mixed sizes look
+  accidental. The scale also applies to labels drawn later in the canvas.
+
+When the engine is active, labels without an explicit position are fully
+automatic (`labels: true` picks each label's side from the local geometry).
+
+Labels never overlap the *stroke* of a circle but may sit inside it, and a
+label placed by the engine is registered so later labels avoid it too.
+
+*Association guarantee:* an automatically placed label is always closer to
+its own point than to any other drawn point by a clear margin
+(`assoc-factor`, default 1.1) — candidates that would visually attach to a
+neighbor are rejected outright, in the fallback too.
+
+*Important:* the engine only sees geometry drawn *before* the label —
+draw your labels last (all examples in this manual already do).
+
+=== Turning it off and on
+
+```typst
+ctz-label-avoid(false)   // global off: labels go exactly where asked
+ctz-label-avoid(true)    // back on with defaults
+```
+
+Per label, `avoid: false` pins the label exactly where requested:
+
+```typst
+ctz-draw(points: ("A", "B", "M"), labels: (
+  A: "below left",
+  M: (pos: "below", avoid: false),  // exact position, no dodging
+  B: "below right",
+))
+```
+
+`ctz-label-avoid(...)` can be called mid-canvas; it affects all labels drawn
+after it.
+
+=== Configuration
+
+Pass a dictionary to `ctz-label-avoid` (or set
+`ctz-style(label: (avoid: (...)))`) to tune the engine. All distance options
+accept Typst lengths (canvas-scale independent) or plain numbers (canvas
+units).
+
+#table(
+  columns: (auto, auto, 1fr),
+  inset: 6pt,
+  stroke: 0.5pt + luma(80%),
+  [*Option*], [*Default*], [*Meaning*],
+  [`ring-step`], [`4pt`], [Extra distance per push-out retry],
+  [`rings`], [`5`], [Number of distances tried per anchor],
+  [`shrink`], [`(0.85, 0.7)`], [Font scales tried when nothing fits at full size; `()` disables shrinking],
+  [`assoc-factor`], [`1.1`], [A label must be this much closer to its own point than to any other],
+  [`margin`], [`1.5pt`], [Clearance kept around points and circle strokes],
+)
+
+```typst
+ctz-label-avoid((rings: 5, shrink: ()))  // search farther, never shrink
+```
+
+Angle labels (`ctz-draw-angle`) participate too: they slide outward along the
+angle bisector until clear, and register their footprint so point labels flow
+around them.
+
 == Main Levée (Hand-Drawn Style)
 
 The package supports a "main levée" (hand-drawn/sketchy) style that adds slight perturbations to lines and shapes, giving them a natural, hand-drawn appearance.

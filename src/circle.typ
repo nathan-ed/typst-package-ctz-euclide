@@ -86,18 +86,15 @@
     return ()
   }
 
-  // Distance from center to tangent point along line to external point
-  // Using right triangle: d² = r² + t², where t is tangent length
-  let tangent-length = calc.sqrt(d * d - radius * radius)
-
   // Angle from center to external point
-  let angle-to-p = calc.atan2(
+  let angle-to-p = util.angle-of(
+    external-point.at(0) - center.at(0),
     external-point.at(1) - center.at(1),
-    external-point.at(0) - center.at(0)
   )
 
-  // Angle offset for tangent points
-  let angle-offset = calc.asin(radius / d)
+  // Angle at the CENTER between center→P and center→tangent-point.
+  // In the right triangle O-T-P (right angle at T): cos(angle) = r / d.
+  let angle-offset = calc.acos(radius / d)
 
   // Convert to proper angle type
   let angle-deg = util.to-angle(util.to-degrees(angle-to-p))

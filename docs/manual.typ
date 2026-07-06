@@ -1,4 +1,4 @@
-#import "@preview/ctz-euclide:0.1.0": *
+#import "@preview/ctz-euclide:0.2.0": *
 #import "helpers.typ": *
 
 // ==============================================================================
@@ -33,7 +33,7 @@
   #v(1cm)
   #text(size: 11pt)[
     A comprehensive geometry package built on CeTZ\
-    Version 0.1.0\
+    Version 0.1.5\
     Nathan Scheinmann
   ]
 ]
