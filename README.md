@@ -1,7 +1,7 @@
 # ctz-euclide
 
 [![ctz-euclide on Typst Universe](https://img.shields.io/badge/Typst_Universe-v._0.3.0-239dad?labelColor=eee)](https://typst.app/universe/package/ctz-euclide)
-[![Full package manual as PDF](https://img.shields.io/badge/Manual-pdf-333333?labelColor=eee)](https://github.com/nathan-ed/typst-package-ctz-euclide/blob/11860463e198c2031b67ac3d66a6a565adb9751a/docs/manual.pdf)
+[![Full package manual as PDF](https://img.shields.io/badge/Manual-pdf-333333?labelColor=eee)](https://github.com/nathan-ed/typst-package-ctz-euclide/blob/1f5fc934ab565f1d15bc9df28114515872c52af3/docs/manual.pdf)
 [![Distributed under the MIT license](https://img.shields.io/badge/License-MIT-333333?labelColor=eee)](LICENSE)
 
 A comprehensive Euclidean geometry package, inspired by the LaTeX **tkz-euclide** package.
@@ -194,7 +194,7 @@ Click on an image to see the source code.
 
 ## Documentation
 
-📖 **[Complete Manual (PDF)](https://github.com/nathan-ed/typst-package-ctz-euclide/blob/11860463e198c2031b67ac3d66a6a565adb9751a/docs/manual.pdf)** - Comprehensive documentation with examples and gallery
+📖 **[Complete Manual (PDF)](https://github.com/nathan-ed/typst-package-ctz-euclide/blob/1f5fc934ab565f1d15bc9df28114515872c52af3/docs/manual.pdf)** - Comprehensive documentation with examples and gallery
 
 The manual includes:
 - Detailed API reference for all functions
