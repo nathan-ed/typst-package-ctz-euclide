@@ -1,4 +1,4 @@
-#import "@preview/ctz-euclide:0.2.0": *
+#import "@preview/ctz-euclide:0.2.1": *
 
 #set page(width: auto, height: auto, margin: 0.3cm)
 

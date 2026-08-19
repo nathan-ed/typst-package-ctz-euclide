@@ -1,6 +1,6 @@
 # ctz-euclide
 
-[![ctz-euclide on Typst Universe](https://img.shields.io/badge/Typst_Universe-v._0.2.0-239dad?labelColor=eee)](https://typst.app/universe/package/ctz-euclide)
+[![ctz-euclide on Typst Universe](https://img.shields.io/badge/Typst_Universe-v._0.2.1-239dad?labelColor=eee)](https://typst.app/universe/package/ctz-euclide)
 [![Full package manual as PDF](https://img.shields.io/badge/Manual-pdf-333333?labelColor=eee)](https://github.com/nathan-ed/typst-package-ctz-euclide/blob/3a657e407fce6ab2ecf722296a4105a5445ff731/docs/manual.pdf)
 [![Distributed under the MIT license](https://img.shields.io/badge/License-MIT-333333?labelColor=eee)](LICENSE)
 
@@ -25,6 +25,15 @@ This package is **by no means definitive**. Improvements and features are planne
 - [CeTZ](https://typst.app/universe/package/cetz) v0.5.2
 
 ## Changelog
+
+### 0.2.1 - 2026-08-19
+
+#### Added
+- Point labels accept numeric offsets in their position: `ctz-draw-labels(A: "above+1.2 left+0.5")` nudges a label exactly where it belongs when the automatic placement puts it too close to its point (issue #6).
+- `ctz-draw-labels` no longer needs the point list when positions are given: `ctz-draw-labels(A: "below left", B: "above")` labels A and B. Writing the names twice was pure repetition, and the short form used to draw nothing at all (issue #5).
+
+#### Changed
+- Trailing digits in a point name are set as a subscript: `I1` renders as I₁, `P12` as P₁₂, the way they are written on paper and the way tkz-euclide sets them (issue #6). Names without digits are unchanged.
 
 ### 0.2.0 - 2026-07-07
 
@@ -212,7 +221,7 @@ Contributions, bug reports, feature requests, and feedback are warmly welcomed! 
 ## Quick Start
 
 ```typst
-#import "@preview/ctz-euclide:0.2.0": *
+#import "@preview/ctz-euclide:0.2.1": *
 
 #ctz-canvas({
   import cetz.draw: *

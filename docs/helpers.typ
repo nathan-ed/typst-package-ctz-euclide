@@ -1,6 +1,6 @@
 // Shared helper functions for manual documentation
 // Use local source for development; change to @preview/ctz-euclide:X.X.X for release
-#import "@preview/ctz-euclide:0.2.0": *
+#import "@preview/ctz-euclide:0.2.1": *
 
 /// Two-column example layout with code and figure
 #let example(code, body, length: 0.75cm, clip-canvas: auto) = block(breakable: false)[

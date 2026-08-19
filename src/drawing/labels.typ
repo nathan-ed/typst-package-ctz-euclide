@@ -21,10 +21,10 @@
 )
 
 /// Convert a point name string to math content.
-/// - Greek letter names render as the symbol: "alpha" → α, "omega1" → ω1
+/// - Greek letter names render as the symbol: "alpha" → α, "omega1" → ω₁
+/// - Trailing digits become a subscript: "I1" → I₁, "P12" → P₁₂
 /// - Other letters are treated as separate identifiers so multi-character
-///   names like "Ma" or "P1" render correctly, and primes ("A'") render
-///   as primes.
+///   names like "Ma" render correctly, and primes ("A'") render as primes.
 /// - Names that are not simple identifiers (spaces, punctuation, ...) are
 ///   returned as plain text instead of panicking inside eval().
 #let _math-label(name) = {
@@ -38,8 +38,10 @@
   } else {
     base.clusters().join(" ")
   }
+  // Trailing digits are a subscript: a point called I1 is I sub 1, the way it
+  // is written on paper and the way tkz-euclide sets it.
   if digits != "" {
-    expr = expr + " " + digits.clusters().join(" ")
+    expr = expr + "_(" + digits + ")"
   }
   if primes != "" {
     expr = expr + " " + primes

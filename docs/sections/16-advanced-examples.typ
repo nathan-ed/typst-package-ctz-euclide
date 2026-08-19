@@ -203,7 +203,7 @@
   code: [```typst
 #ctz-canvas(length: 0.7cm, clip-canvas: (-4, -4, 12, 12), {
   import cetz.draw: *
-  import "@preview/ctz-euclide:0.2.0": *
+  import "@preview/ctz-euclide:0.2.1": *
   ctz-init()
 
   let F = (0, 0)

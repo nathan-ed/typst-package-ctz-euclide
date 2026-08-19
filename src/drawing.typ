@@ -510,8 +510,12 @@
 /// - a dictionary: (pos: "above", offset: (0.1, 0)) or (pos: "auto", avoid: ("B", "C"))
 ///   or (pos: "above", avoid: false) to pin the label exactly where asked
 #let label-points-styled(cetz-draw, pt-func, ..args) = {
-  let names = args.pos()
   let positions = args.named()
+  // Giving a position already names the point, so listing it again is pure
+  // repetition: ctz-draw-labels(A: "below left", B: "above") labels A and B.
+  // Positional names stay authoritative when both forms are used, so the
+  // order they were written in is kept.
+  let names = if args.pos().len() > 0 { args.pos() } else { positions.keys() }
 
   draw-with-state(ctx => {
     let style = get-style(ctx)

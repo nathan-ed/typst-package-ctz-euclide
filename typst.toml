@@ -1,6 +1,6 @@
 [package]
 name = "ctz-euclide"
-version = "0.2.0"
+version = "0.2.1"
 entrypoint = "src/lib.typ"
 authors = ["Nathan Scheinmann"]
 license = "MIT"
