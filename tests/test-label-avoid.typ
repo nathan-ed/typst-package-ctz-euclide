@@ -37,19 +37,46 @@
   }
 
   // --- candidate list: order, length, uniqueness ---------------------------
+  // 8 anchors x 3 rings + 16 float directions x 3 rings
   let cands = _drawing._candidate-list("above", 3)
-  assert(cands.len() == 24, message: "24 candidates expected, got " + str(cands.len()))
+  assert(cands.len() == 72, message: "72 candidates expected, got " + str(cands.len()))
   assert(cands.at(0).pos == "above" and cands.at(0).ring == 0,
     message: "preferred anchor first, got " + repr(cands.at(0)))
-  assert(cands.map(c => (c.pos, c.ring)).dedup().len() == 24, message: "candidates must be unique")
+  assert(cands.map(c => (c.pos, c.angle, c.ring)).dedup().len() == 72, message: "candidates must be unique")
+  // float candidates are more expensive than staying near the request but
+  // cheaper than the far rings / big flips of the anchor grid
+  let first-float = cands.position(c => c.pos == "center")
+  assert(cands.at(first-float).cost >= 3.4, message: "floats start at cost 3.4")
   // staying on the requested side (farther ring) beats switching anchors
   let idx-of(pos, ring) = cands.position(x => x.pos == pos and x.ring == ring)
   assert(idx-of("above", 1) < idx-of("above left", 0), message: "preferred@r1 before neighbor@r0")
   // but a 45° neighbor at ring 0 beats a 90° switch at ring 0
   assert(idx-of("above left", 0) < idx-of("left", 0), message: "45° before 90°")
   assert(idx-of("above", 1) < idx-of("left", 1), message: "preferred@r1 before 90°@r1")
-  // unified engine: a one-step shrink at the preferred anchor (cost 1.5)
-  // must beat a 135° anchor flip (cost 3.6) — checked end-to-end below
+  // anchor switches are expensive: every ring on the requested anchor is
+  // exhausted before even the 45° neighbors at ring 0
+  assert(idx-of("above", 2) < idx-of("above left", 0), message: "preferred@r2 before 45° switch")
+  // the OPPOSITE side keeps the label centered on the same axis and beats
+  // perpendicular and diagonal flips (crowded rows alternate above/below)
+  assert(idx-of("above left", 0) < idx-of("below", 0), message: "45° lean before opposite")
+  assert(idx-of("below", 0) < idx-of("left", 0), message: "opposite before 90°")
+  assert(idx-of("below", 0) < idx-of("below left", 0), message: "opposite before 135°")
+
+  // --- precise position parser ----------------------------------------------
+  let pp = _drawing._parse-precise-pos("above+1.2 left+0.5")
+  assert(pp.pos == "above left" and pp.enforced, message: "precise compound: " + repr(pp))
+  assert-close(pp.offset.at(0), -0.5, msg: "precise dx")
+  assert-close(pp.offset.at(1), 1.2, msg: "precise dy")
+  let pp2 = _drawing._parse-precise-pos("top+.8")
+  assert(pp2.pos == "above" and pp2.enforced, message: "top alias: " + repr(pp2))
+  assert-close(pp2.offset.at(1), 0.8, msg: "top alias dy")
+  let pp3 = _drawing._parse-precise-pos("left-0.5")   // negative flips
+  assert(pp3.pos == "right" and pp3.enforced, message: "negative flip: " + repr(pp3))
+  assert-close(pp3.offset.at(0), 0.5, msg: "negative flip dx")
+  let pp4 = _drawing._parse-precise-pos("above left") // plain names: suggestion
+  assert(pp4.pos == "above left" and not pp4.enforced, message: "plain compound: " + repr(pp4))
+  assert(_drawing._parse-precise-pos("auto") == none, message: "auto is not a direction")
+  assert(_drawing._parse-precise-pos("above+x") == none, message: "bad amount rejected")
 
   // --- segment chord --------------------------------------------------------
   // horizontal segment through a unit rect
@@ -75,7 +102,8 @@
 
   // --- find-label-placement: blocked preferred anchor -----------------------
   // Point at origin on a horizontal line; a label rect already sits exactly
-  // where "above" (and its rings) would land → engine must pick a clean spot.
+  // where "above" (and its rings) would land → engine must pick a clean spot:
+  // the opposite side ("below"), which keeps the label centered on the point.
   let sizes = ((scale: 1.0, w: 0.4, h: 0.25),)
   let cfg = (pad: 0.1, ring-step: 0.15, rings: 3, weights: (label: 4, point: 2, segment: 1, circle: 1), margin: 0.02)
   let obstacles = (
@@ -87,7 +115,7 @@
   let res = _drawing.find-label-placement("above", (0, 0), sizes, obstacles, cfg)
   assert(res.score == 0, message: "expected clean placement, got score " + str(res.score))
   assert(res.pos != "above", message: "blocked anchor must not be used")
-  assert(res.pos.starts-with("above"), message: "should stay close to preference, got " + res.pos)
+  assert(res.pos == "below", message: "opposite side expected, got " + res.pos)
   assert(res.scale == 1.0, message: "no shrink needed")
 
   // deterministic: same inputs → same result
@@ -177,9 +205,36 @@ All numeric assertions passed.
 
 == Part 2 — visual cases
 
-=== Five crowded points all requesting "above" (labels dodge the line, points and each other)
+=== Five crowded points all requesting "above" (too tight for one side → alternate above/below, full size)
 #ctz-canvas({
   ctz-init()
+  ctz-def-points(P1: (0, 0), P2: (0.45, 0), P3: (0.9, 0), P4: (1.35, 0), P5: (1.8, 0))
+  ctz-draw-segment("P1", "P5")
+  ctz-draw(points: ("P1", "P2", "P3", "P4", "P5"),
+    labels: (P1: "above", P2: "above", P3: "above", P4: "above", P5: "above"))
+})
+
+=== Same figure fully automatic (endpoints go outward, middle row stays calm)
+#ctz-canvas({
+  ctz-init()
+  ctz-def-points(P1: (0, 0), P2: (0.45, 0), P3: (0.9, 0), P4: (1.35, 0), P5: (1.8, 0))
+  ctz-draw-segment("P1", "P5")
+  ctz-draw(points: ("P1", "P2", "P3", "P4", "P5"), labels: true)
+})
+
+=== Moderate crowding stays at full size (no shrink unless nothing calm fits)
+#ctz-canvas({
+  ctz-init()
+  ctz-def-points(Q1: (0, 0), Q2: (0.8, 0), Q3: (1.6, 0), Q4: (2.4, 0))
+  ctz-draw-segment("Q1", "Q4")
+  ctz-draw(points: ("Q1", "Q2", "Q3", "Q4"),
+    labels: (Q1: "above", Q2: "above", Q3: "above", Q4: "above"))
+})
+
+=== Same five crowded points with ctz-label-avoid((allow-shrink: false)) (alternation needs no shrink anyway)
+#ctz-canvas({
+  ctz-init()
+  ctz-label-avoid((allow-shrink: false))
   ctz-def-points(P1: (0, 0), P2: (0.45, 0), P3: (0.9, 0), P4: (1.35, 0), P5: (1.8, 0))
   ctz-draw-segment("P1", "P5")
   ctz-draw(points: ("P1", "P2", "P3", "P4", "P5"),
@@ -193,7 +248,7 @@ All numeric assertions passed.
   ctz-def-points(P1: (0, 0), P2: (0.45, 0), P3: (0.9, 0), P4: (1.35, 0), P5: (1.8, 0))
   ctz-draw-segment("P1", "P5")
   ctz-draw(points: ("P1", "P2", "P3", "P4", "P5"),
-    labels: (P1: "above", P2: "above", P3: "above", P4: "above", P5: "above"))
+    labels: true)
 })
 
 === Crowded triangle: circumcircle + incircle + medians, everything labeled
@@ -215,7 +270,7 @@ All numeric assertions passed.
   ctz-draw(segment: ("C", "Mc"), stroke: gray + 0.6pt)
   ctz-draw(points: ("A", "B", "C", "G", "O", "I", "Ma", "Mb", "Mc"), labels: (
     A: "below left", B: "below right", C: "above",
-    G: "above right", O: "below", I: "left",
+    G: "above", O: "below", I: "left",
     Ma: "above right", Mb: "left", Mc: "below",
   ))
 })
@@ -240,7 +295,7 @@ All numeric assertions passed.
   ctz-draw(points: ("A", "B", "C", "G", "O", "I", "Ma", "Mb", "Mc"), labels: true)
 })
 
-=== Point on a line, label "below" also blocked by a second line → shifted/shrunk
+=== Point on a line, label "below" blocked by a second line → flips to the open side above
 #ctz-canvas({
   ctz-init()
   ctz-def-points(A: (-2, 0), B: (2, 0), M: (0, 0), A2: (-2, -0.45), B2: (2, -0.45))
@@ -302,6 +357,32 @@ All numeric assertions passed.
     M1: "above",
     M2: (pos: "below", avoid: false),  // sits ON the line, exactly as requested
     M3: "above",
+  ))
+})
+
+=== Precise placement: numeric offsets pin labels exactly (engine off for them)
+`A: "above+1.2 left+0.5"`, `B: "top+0.8"`, `M: "below+0.3 right+0.2"` — offsets in canvas units on a 0.5 grid:
+#ctz-canvas({
+  ctz-init()
+  ctz-draw-grid(xmin: -1.5, xmax: 5, ymin: -1, ymax: 2, xstep: 0.5, ystep: 0.5, stroke: luma(85%) + 0.4pt)
+  ctz-def-points(A: (0, 0), B: (4, 0), M: (2, 0))
+  ctz-draw-segment("A", "B")
+  ctz-draw(points: ("A", "B", "M"), labels: (
+    A: "above+1.2 left+0.5",
+    B: "top+0.8",
+    M: "below+0.3 right+0.2",
+  ))
+})
+
+=== Per-label "auto" mixed with explicit and precise positions
+#ctz-canvas({
+  ctz-init()
+  ctz-def-points(A: (0, 0), B: (3, 0), C: (1.5, 2))
+  ctz-draw(line: ("A", "B", "C", "A"))
+  ctz-draw(points: ("A", "B", "C"), labels: (
+    A: "auto",                    // engine picks the side from the geometry
+    B: "below+0.4 right+0.3",     // pinned exactly
+    C: "auto",
   ))
 })
 

@@ -55,27 +55,55 @@ markers, and other labels. This is *on by default*.
 The engine works per label, deterministically:
 
 + Measure the label and build its bounding box (including the standard 5pt
-  gap around the text).
-+ Try candidate positions in order of "closeness" to your request: the
-  requested anchor first, then the same anchor pushed slightly farther out,
-  then the neighboring anchors. *Every* full-size position is tried before
-  the font is shrunk (85%, then 70%) — shrinking is a last resort.
-+ The first candidate that overlaps nothing wins. If *no* clean spot exists,
-  the least-bad candidate at full size is used (never an unbounded search).
+  gap around the text). In tight clusters — another point closer than the
+  label could ever be — the gap is reduced to 60% so the label hugs its
+  point instead of floating; points in open space keep the airy gap.
++ Try candidate positions in order of visual "closeness" to your request:
+  the requested anchor first (pushed slightly farther out if needed), then a
+  45° lean, then the *opposite* side — flipping above ↔ below keeps the
+  label centered on the same axis, so a crowded row naturally alternates
+  its labels above and below the line. Perpendicular and diagonal flips
+  come last. When the anchor grid finds nothing nearby, *free-floating*
+  candidates at 16 fine directions around the point take over — they can
+  nestle a label into a tilted wedge (e.g. between two medians crossing at
+  a centroid). *Every* full-size position is tried before the font is
+  shrunk (85%, then 70%) — shrinking is a last resort.
++ A candidate is accepted when its *text* is clear of everything: thin
+  geometry may run through the label's padding (a close, slightly grazed
+  label reads better than one exiled to the first perfectly clear spot).
+  If nothing is acceptable, the least-bad candidate is used (never an
+  unbounded search).
 + If any label of a figure must shrink, *all* labels of that figure are
   re-placed at the same (smallest needed) scale — mixed sizes look
   accidental. The scale also applies to labels drawn later in the canvas.
++ *Group tidiness:* if even one label had to travel far from its point
+  (staggered rows, big anchor flips) or still collides, the figure is
+  overcrowded for its label size. The engine then retries the whole figure
+  at a uniform smaller scale and keeps the largest scale where the layout is
+  *calm* — every label at its requested anchor, nothing colliding. One
+  quiet row of slightly smaller labels reads better than full-size chaos;
+  if no scale is calm, the full-size layout is kept.
 
 When the engine is active, labels without an explicit position are fully
 automatic (`labels: true` picks each label's side from the local geometry).
+`"auto"` also works per label, so you can mix automatic, suggested and
+pinned labels in one call:
+
+```typst
+ctz-draw(points: ("A", "B", "C"), labels: (
+  A: "auto",                 // engine picks the side from the geometry
+  B: "left",                 // suggestion — may be adjusted
+  C: "below+0.4 right+0.3",  // pinned exactly (see below)
+))
+```
 
 Labels never overlap the *stroke* of a circle but may sit inside it, and a
 label placed by the engine is registered so later labels avoid it too.
 
-*Association guarantee:* an automatically placed label is always closer to
-its own point than to any other drawn point by a clear margin
-(`assoc-factor`, default 1.1) — candidates that would visually attach to a
-neighbor are rejected outright, in the fallback too.
+*Association guarantee:* an automatically placed label is always strictly
+closer to its own point than to any other drawn point (`assoc-factor`,
+default 1.0; raise it to demand a clear margin) — candidates that would
+visually attach to a neighbor are rejected outright, in the fallback too.
 
 *Important:* the engine only sees geometry drawn *before* the label —
 draw your labels last (all examples in this manual already do).
@@ -100,6 +128,28 @@ ctz-draw(points: ("A", "B", "M"), labels: (
 `ctz-label-avoid(...)` can be called mid-canvas; it affects all labels drawn
 after it.
 
+=== Precise manual placement
+
+A plain position name (`"above"`) is a *suggestion* — the engine may move
+the label to keep it readable. To place a label *exactly*, add numeric
+offsets (canvas units) to direction tokens; such a label is pinned as
+written and the engine ignores it:
+
+```typst
+ctz-draw(points: ("A", "B", "M"), labels: (
+  A: "above+1.2 left+0.5",   // 1.2 up, 0.5 left of A — exactly there
+  B: "top+0.8",              // top/bottom/up/down are aliases
+  M: "below+0.3 right+0.2",
+))
+```
+
+The direction tokens also set the text anchor (`"above+1.2 left+0.5"`
+anchors like `"above left"`, so the text extends away from the point), and
+the standard 5pt text gap still applies — `"above+0"` is exactly a pinned
+`"above"`. A negative amount flips the direction (`"left-0.5"` moves right).
+The equivalent dictionary form is
+`(pos: "above left", offset: (-0.5, 1.2), avoid: false)`.
+
 === Configuration
 
 Pass a dictionary to `ctz-label-avoid` (or set
@@ -114,13 +164,15 @@ units).
   [*Option*], [*Default*], [*Meaning*],
   [`ring-step`], [`4pt`], [Extra distance per push-out retry],
   [`rings`], [`5`], [Number of distances tried per anchor],
-  [`shrink`], [`(0.85, 0.7)`], [Font scales tried when nothing fits at full size; `()` disables shrinking],
-  [`assoc-factor`], [`1.1`], [A label must be this much closer to its own point than to any other],
+  [`allow-shrink`], [`true`], [`false`: never reduce the font size — overcrowded figures stagger their labels at full size instead],
+  [`shrink`], [`(0.85, 0.7)`], [Font scales tried when full size does not fit calmly],
+  [`assoc-factor`], [`1.0`], [A label must be this factor closer to its own point than to any other (1.0 = strictly closer)],
   [`margin`], [`1.5pt`], [Clearance kept around points and circle strokes],
 )
 
 ```typst
-ctz-label-avoid((rings: 5, shrink: ()))  // search farther, never shrink
+ctz-label-avoid((allow-shrink: false))   // full-size labels, whatever happens
+ctz-label-avoid((rings: 8))              // search farther out
 ```
 
 Angle labels (`ctz-draw-angle`) participate too: they slide outward along the
