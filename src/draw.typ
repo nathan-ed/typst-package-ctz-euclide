@@ -34,7 +34,11 @@
 #let default-mark-color = black
 
 /// Default point shape ("cross", "dot", "circle", "plus", "square", "diamond", "triangle")
-#let default-point-shape = "cross"
+///
+/// A small filled circle, as tkz-euclide draws it and as textbooks do. A cross
+/// gets messy where several lines run close to the point, which is exactly
+/// where points tend to be marked.
+#let default-point-shape = "circle"
 
 // =============================================================================
 // MAIN LEVÉE (HAND-DRAWN STYLE)

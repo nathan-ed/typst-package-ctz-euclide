@@ -1,6 +1,6 @@
 # ctz-euclide
 
-[![ctz-euclide on Typst Universe](https://img.shields.io/badge/Typst_Universe-v._0.2.1-239dad?labelColor=eee)](https://typst.app/universe/package/ctz-euclide)
+[![ctz-euclide on Typst Universe](https://img.shields.io/badge/Typst_Universe-v._0.3.0-239dad?labelColor=eee)](https://typst.app/universe/package/ctz-euclide)
 [![Full package manual as PDF](https://img.shields.io/badge/Manual-pdf-333333?labelColor=eee)](https://github.com/nathan-ed/typst-package-ctz-euclide/blob/11860463e198c2031b67ac3d66a6a565adb9751a/docs/manual.pdf)
 [![Distributed under the MIT license](https://img.shields.io/badge/License-MIT-333333?labelColor=eee)](LICENSE)
 
@@ -26,21 +26,21 @@ This package is **by no means definitive**. Improvements and features are planne
 
 ## Changelog
 
-### 0.2.1 - 2026-08-19
+### 0.3.0 - 2026-08-19
 
 #### Added
+- **Polar label placement** ([#6](https://github.com/nathan-ed/typst-package-ctz-euclide/issues/6)): `ctz-draw-labels(A: "135deg")` puts the label at that angle from the point, `"200deg+0.6"` sets the distance in canvas units, and the same as parameters is `(angle: 135deg, dist: 0.6)`. 0° is to the right and angles turn counter-clockwise. Pushing a label away from a line is an angular thought, which the eight compass directions and their numeric offsets could only approximate.
 - Point labels accept numeric offsets in their position: `ctz-draw-labels(A: "above+1.2 left+0.5")` nudges a label exactly where it belongs when the automatic placement puts it too close to its point (issue #6).
 - `ctz-draw-labels` no longer needs the point list when positions are given: `ctz-draw-labels(A: "below left", B: "above")` labels A and B. Writing the names twice was pure repetition, and the short form used to draw nothing at all (issue #5).
-
-#### Added
 - `ctz-def-triangle-center(kind, name, "A,B,C")` ([#6](https://github.com/nathan-ed/typst-package-ctz-euclide/issues/6)): a triangle centre named by which centre it is, with the triangle written once. `kind` is `"centroid"`, `"circum"`, `"in"`, `"ortho"`, `"euler"`, `"lemoine"`, `"nagel"`, `"gergonne"`, `"spieker"`, `"feuerbach"`, `"mittenpunkt"` or `"ex"` (with `vertex:`), and common aliases are accepted. The vertices may be one comma-separated string, an array or three arguments. The eleven `ctz-def-<centre>` functions keep working unchanged.
 - `angle-type: "complementary"` on `ctz-draw-angle` / `mark-angle` ([#2](https://github.com/nathan-ed/typst-package-ctz-euclide/issues/2)): what the angle lacks to reach 90°, drawn from the second ray out to the perpendicular of the first. With `"interior"`, `"reflex"`/`"explementary"` and `"supplementary"`/`"exterior"` this covers the four named angles. An angle of 90° or more panics rather than draw nonsense.
 
+#### Changed
+- **The default point marker is a small circle instead of a cross** ([#6](https://github.com/nathan-ed/typst-package-ctz-euclide/issues/6)). A cross gets messy where several lines run close to the point, which is exactly where points get marked, and the circle is what tkz-euclide and textbooks draw. Every other shape stays one call away: `ctz-style(point: (shape: "cross"))` restores the previous look for a whole document. This redraws existing figures, hence the minor bump.
+- Trailing digits in a point name are set as a subscript: `I1` renders as I₁, `P12` as P₁₂, the way they are written on paper and the way tkz-euclide sets them (issue #6). Names without digits are unchanged.
+
 #### Fixed
 - An arc named by two points swept the wrong way whenever its end lay past the half turn ([#4](https://github.com/nathan-ed/typst-package-ctz-euclide/issues/4), second report). `calc.atan2` answers in (-180, 180], so an end at 250° arrived as -110° and cetz drew the long way round clockwise, landing on top of unrelated arcs; reversing the two points drew the same arc again instead of its complement. An arc given two points is now the direct one, counter-clockwise from start to end, matching what the angle form of the call already drew.
-
-#### Changed
-- Trailing digits in a point name are set as a subscript: `I1` renders as I₁, `P12` as P₁₂, the way they are written on paper and the way tkz-euclide sets them (issue #6). Names without digits are unchanged.
 
 ### 0.2.0 - 2026-07-07
 
@@ -228,7 +228,7 @@ Contributions, bug reports, feature requests, and feedback are warmly welcomed! 
 ## Quick Start
 
 ```typst
-#import "@preview/ctz-euclide:0.2.1": *
+#import "@preview/ctz-euclide:0.3.0": *
 
 #ctz-canvas({
   import cetz.draw: *

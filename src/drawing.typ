@@ -483,6 +483,42 @@
 /// name composed from the directions and enforced is true iff at least one
 /// numeric offset is present — such labels are placed EXACTLY as written
 /// (the collision engine is off for them).
+/// Distance used by the polar form when none is given, in canvas units.
+#let _polar-default-dist = 0.35
+
+/// Polar placement: "200deg" or "30deg+0.4" — the label goes at that angle
+/// from the point, at the given distance in canvas units (the current label
+/// distance when none is given). 0° is to the right, angles turn counter-
+/// clockwise, which is how a figure is read out loud: "put it up-left of A"
+/// is "135deg".
+#let _parse-polar-pos(s, default-dist) = {
+  let tokens = s.split(" ").filter(t => t != "")
+  if tokens.len() != 1 { return none }
+  let tok = tokens.first()
+  let num-re = regex("^-?[0-9]*\\.?[0-9]+$")
+  let (angle-part, dist) = if tok.contains("+") {
+    let parts = tok.split("+")
+    if parts.len() != 2 or parts.at(1).match(num-re) == none { return none }
+    (parts.at(0), float(parts.at(1)))
+  } else {
+    (tok, default-dist)
+  }
+  if not angle-part.ends-with("deg") { return none }
+  let num = angle-part.slice(0, angle-part.len() - 3)
+  if num.match(num-re) == none { return none }
+  let a = float(num) * 1deg
+  // The anchor is the compass direction the angle points at, so the label
+  // extends away from the point rather than sitting on it.
+  let deg = calc.rem(float(num), 360)
+  let deg = if deg < 0 { deg + 360 } else { deg }
+  let sector = calc.rem(int(calc.round(deg / 45)), 8)
+  let pos = (
+    "right", "above right", "above", "above left",
+    "left", "below left", "below", "below right",
+  ).at(sector)
+  (pos: pos, offset: (dist * calc.cos(a), dist * calc.sin(a)), enforced: true)
+}
+
 #let _parse-precise-pos(s) = {
   let dirs = (
     "above": (0, 1), "top": (0, 1), "up": (0, 1),
@@ -536,8 +572,12 @@
 /// - a string with numeric offsets: "above+0.4", "top+1.2 left+0.5" — EXACT
 ///   placement in canvas units, the collision engine is off for this label
 /// - "auto": automatically find best position avoiding connected lines and nearby points
+/// - a polar string: "135deg" or "200deg+0.6" — at that angle from the point,
+///   at that distance in canvas units (0° to the right, turning counter-
+///   clockwise). EXACT placement, the collision engine is off for this label
 /// - a dictionary: (pos: "above", offset: (0.1, 0)) or (pos: "auto", avoid: ("B", "C"))
-///   or (pos: "above", avoid: false) to pin the label exactly where asked
+///   or (pos: "above", avoid: false) to pin the label exactly where asked,
+///   or the polar form as parameters: (angle: 135deg, dist: 0.4)
 #let label-points-styled(cetz-draw, pt-func, ..args) = {
   let positions = args.named()
   // Giving a position already names the point, so listing it again is pure
@@ -582,7 +622,10 @@
     for name in names {
       let spec = positions.at(name, default: default-pos)
       let (pos, offset, avoid-extra, label-content, avoid-flag) = if type(spec) == str {
-        let precise = _parse-precise-pos(spec)
+        let precise = {
+          let polar = _parse-polar-pos(spec, _polar-default-dist)
+          if polar != none { polar } else { _parse-precise-pos(spec) }
+        }
         if precise == none {
           (spec, (0, 0), (), none, auto)
         } else {
@@ -598,9 +641,25 @@
           else { ((), auto) }
         let raw-pos = spec.at("pos", default: default-pos)
         let offset = spec.at("offset", default: (0, 0))
+        // Polar form as parameters: (angle: 135deg, dist: 0.4). The angle may
+        // be an angle or a plain number of degrees; dist is in canvas units
+        // and defaults to the usual label distance.
+        let ang = spec.at("angle", default: none)
+        if ang != none {
+          let deg = if type(ang) == angle { ang / 1deg } else { float(ang) }
+          let d = spec.at("dist", default: _polar-default-dist)
+          let polar = _parse-polar-pos(str(deg) + "deg+" + str(d), _polar-default-dist)
+          assert(polar != none, message: "label angle: could not read " + repr(ang))
+          raw-pos = polar.pos
+          offset = (offset.at(0) + polar.offset.at(0), offset.at(1) + polar.offset.at(1))
+          if flag == auto { flag = false }
+        }
         // pos: may use the precise "above+0.4 left+0.2" syntax too; its
         // offsets add to offset: and pin the label unless avoid: overrides
-        let precise = if type(raw-pos) == str { _parse-precise-pos(raw-pos) } else { none }
+        let precise = if type(raw-pos) == str {
+          let polar = _parse-polar-pos(raw-pos, _polar-default-dist)
+          if polar != none { polar } else { _parse-precise-pos(raw-pos) }
+        } else { none }
         if precise != none {
           raw-pos = precise.pos
           offset = (offset.at(0) + precise.offset.at(0), offset.at(1) + precise.offset.at(1))

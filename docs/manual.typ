@@ -1,4 +1,4 @@
-#import "@preview/ctz-euclide:0.2.0": *
+#import "@preview/ctz-euclide:0.3.0": *
 #import "helpers.typ": *
 
 // ==============================================================================
