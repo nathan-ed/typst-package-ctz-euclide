@@ -2859,6 +2859,54 @@
 #let ctz-def-mittenpunkt(name, a, b, c) = _mittenpunkt(name, a, b, c)
 #let ctz-def-excenter(name, a, b, c, vertex: "A") = _excenter(name, a, b, c, vertex: vertex)
 
+/// A triangle centre, named by which centre it is rather than by its own
+/// function. Reads closer to tkz-euclide, and keeps the triangle in one place:
+///
+///   ctz-def-triangle-center("in", "I", "A,B,C")     // incenter
+///   ctz-def-triangle-center("centroid", "G", "A,B,C")
+///   ctz-def-triangle-center("ex", "J", "A,B,C", vertex: "B")
+///
+/// The vertices may be written as one comma-separated string, as an array, or
+/// as three arguments; the eleven ctz-def-<centre> functions keep working
+/// unchanged.
+///
+/// Kinds: "centroid"/"median"/"g", "circum"/"circumcenter"/"o",
+/// "in"/"incenter"/"i", "ortho"/"orthocenter"/"h", "euler"/"nine-point"/"n",
+/// "lemoine"/"symmedian"/"k", "nagel", "gergonne", "spieker", "feuerbach",
+/// "mittenpunkt", "ex"/"excenter" (with vertex:).
+#let ctz-def-triangle-center(kind, name, ..vertices, vertex: "A") = {
+  let vs = vertices.pos()
+  // "A,B,C" or ("A", "B", "C") or "A", "B", "C"
+  if vs.len() == 1 and type(vs.at(0)) == str and vs.at(0).contains(",") {
+    vs = vs.at(0).split(",").map(v => v.trim())
+  } else if vs.len() == 1 and type(vs.at(0)) == array {
+    vs = vs.at(0)
+  }
+  assert(
+    vs.len() == 3,
+    message: "ctz-def-triangle-center: expected three vertices, got " + repr(vs),
+  )
+  let (a, b, c) = vs
+  let k = lower(kind)
+  if k in ("centroid", "median", "g") { _centroid(name, a, b, c) }
+  else if k in ("circum", "circumcenter", "circumcentre", "o") { _circumcenter(name, a, b, c) }
+  else if k in ("in", "incenter", "incentre", "i") { _incenter(name, a, b, c) }
+  else if k in ("ortho", "orthocenter", "orthocentre", "h") { _orthocenter(name, a, b, c) }
+  else if k in ("euler", "nine-point", "ninepoint", "n") { _euler(name, a, b, c) }
+  else if k in ("lemoine", "symmedian", "k") { _lemoine(name, a, b, c) }
+  else if k == "nagel" { _nagel(name, a, b, c) }
+  else if k == "gergonne" { _gergonne(name, a, b, c) }
+  else if k == "spieker" { _spieker(name, a, b, c) }
+  else if k == "feuerbach" { _feuerbach(name, a, b, c) }
+  else if k == "mittenpunkt" { _mittenpunkt(name, a, b, c) }
+  else if k in ("ex", "excenter", "excentre") { _excenter(name, a, b, c, vertex: vertex) }
+  else {
+    panic("ctz-def-triangle-center: unknown centre " + repr(kind)
+      + ". Known: centroid, circum, in, ortho, euler, lemoine, nagel, gergonne, "
+      + "spieker, feuerbach, mittenpunkt, ex")
+  }
+}
+
 // Special triangles
 #let ctz-def-medial-triangle(name-a, name-b, name-c, a, b, c) = _medial(name-a, name-b, name-c, a, b, c)
 #let ctz-def-orthic-triangle(name-a, name-b, name-c, a, b, c) = _orthic(name-a, name-b, name-c, a, b, c)

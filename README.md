@@ -33,6 +33,7 @@ This package is **by no means definitive**. Improvements and features are planne
 - `ctz-draw-labels` no longer needs the point list when positions are given: `ctz-draw-labels(A: "below left", B: "above")` labels A and B. Writing the names twice was pure repetition, and the short form used to draw nothing at all (issue #5).
 
 #### Added
+- `ctz-def-triangle-center(kind, name, "A,B,C")` ([#6](https://github.com/nathan-ed/typst-package-ctz-euclide/issues/6)): a triangle centre named by which centre it is, with the triangle written once. `kind` is `"centroid"`, `"circum"`, `"in"`, `"ortho"`, `"euler"`, `"lemoine"`, `"nagel"`, `"gergonne"`, `"spieker"`, `"feuerbach"`, `"mittenpunkt"` or `"ex"` (with `vertex:`), and common aliases are accepted. The vertices may be one comma-separated string, an array or three arguments. The eleven `ctz-def-<centre>` functions keep working unchanged.
 - `angle-type: "complementary"` on `ctz-draw-angle` / `mark-angle` ([#2](https://github.com/nathan-ed/typst-package-ctz-euclide/issues/2)): what the angle lacks to reach 90°, drawn from the second ray out to the perpendicular of the first. With `"interior"`, `"reflex"`/`"explementary"` and `"supplementary"`/`"exterior"` this covers the four named angles. An angle of 90° or more panics rather than draw nonsense.
 
 #### Fixed
