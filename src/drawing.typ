@@ -262,9 +262,10 @@
 /// - angle-type: "interior" (default) — the smaller angle between the rays;
 ///   "reflex"/"explementary" — the 360° complement, drawn on the other side;
 ///   "supplementary"/"exterior" — the angle between the extension of ray
-///   vertex→a and ray vertex→b (the exterior angle of a polygon at a vertex).
-///   (A complementary angle needs an explicit perpendicular ray, e.g. via
-///   ctz-def-perp, since it is not spanned by the two given rays.)
+///   vertex→a and ray vertex→b (the exterior angle of a polygon at a vertex);
+///   "complementary" — what the angle lacks to reach 90°, drawn from ray
+///   vertex→b out to the perpendicular of ray vertex→a. Only meaningful for an
+///   angle below 90°, and it panics otherwise rather than draw nonsense.
 /// - stroke: arc stroke style (default: global angle style)
 /// - fill: arc fill color (default: global angle style)
 #let mark-angle(
@@ -284,8 +285,8 @@
   name: none,
 ) = {
   assert(
-    angle-type in ("interior", "reflex", "explementary", "supplementary", "exterior"),
-    message: "angle-type must be \"interior\", \"reflex\"/\"explementary\" or \"supplementary\"/\"exterior\", got " + repr(angle-type),
+    angle-type in ("interior", "reflex", "explementary", "supplementary", "exterior", "complementary"),
+    message: "angle-type must be \"interior\", \"reflex\"/\"explementary\", \"supplementary\"/\"exterior\" or \"complementary\", got " + repr(angle-type),
   )
   let reflex = angle-type in ("reflex", "explementary")
 
@@ -304,6 +305,34 @@
     // Supplementary/exterior angle: mirror the first ray through the vertex
     if angle-type in ("supplementary", "exterior") {
       pa = (2 * v.at(0) - pa.at(0), 2 * v.at(1) - pa.at(1), pa.at(2, default: 0))
+    }
+
+    // Complementary angle: what the angle lacks to reach 90 degrees, spanned
+    // between ray vertex→b and the perpendicular of ray vertex→a. The first
+    // ray is replaced by that perpendicular, turned towards b so the arc opens
+    // on the side the angle sits on.
+    if angle-type == "complementary" {
+      let va = (pa.at(0) - v.at(0), pa.at(1) - v.at(1))
+      let vb = (pb.at(0) - v.at(0), pb.at(1) - v.at(1))
+      let la = calc.sqrt(va.at(0) * va.at(0) + va.at(1) * va.at(1))
+      assert(la > 0, message: "mark-angle: the first ray has zero length")
+      let cross = va.at(0) * vb.at(1) - va.at(1) * vb.at(0)
+      let dot = va.at(0) * vb.at(0) + va.at(1) * vb.at(1)
+      let opening = calc.abs(calc.atan2(dot, calc.abs(cross)))
+      assert(
+        opening < 90deg,
+        message: "angle-type: \"complementary\" needs an angle below 90°, this one is "
+          + repr(opening),
+      )
+      // Perpendicular of va on the same side as b
+      let sign = if cross < 0 { -1 } else { 1 }
+      let perp = (-sign * va.at(1) / la, sign * va.at(0) / la)
+      pa = (v.at(0) + perp.at(0) * la, v.at(1) + perp.at(1) * la, pa.at(2, default: 0))
+      // The complement runs from b out to the perpendicular, so the two rays
+      // swap: b is the start, the perpendicular the end.
+      let tmp = pa
+      pa = pb
+      pb = tmp
     }
 
     // Determine direction if set to auto

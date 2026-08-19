@@ -32,6 +32,9 @@ This package is **by no means definitive**. Improvements and features are planne
 - Point labels accept numeric offsets in their position: `ctz-draw-labels(A: "above+1.2 left+0.5")` nudges a label exactly where it belongs when the automatic placement puts it too close to its point (issue #6).
 - `ctz-draw-labels` no longer needs the point list when positions are given: `ctz-draw-labels(A: "below left", B: "above")` labels A and B. Writing the names twice was pure repetition, and the short form used to draw nothing at all (issue #5).
 
+#### Added
+- `angle-type: "complementary"` on `ctz-draw-angle` / `mark-angle` ([#2](https://github.com/nathan-ed/typst-package-ctz-euclide/issues/2)): what the angle lacks to reach 90°, drawn from the second ray out to the perpendicular of the first. With `"interior"`, `"reflex"`/`"explementary"` and `"supplementary"`/`"exterior"` this covers the four named angles. An angle of 90° or more panics rather than draw nonsense.
+
 #### Fixed
 - An arc named by two points swept the wrong way whenever its end lay past the half turn ([#4](https://github.com/nathan-ed/typst-package-ctz-euclide/issues/4), second report). `calc.atan2` answers in (-180, 180], so an end at 250° arrived as -110° and cetz drew the long way round clockwise, landing on top of unrelated arcs; reversing the two points drew the same arc again instead of its complement. An arc given two points is now the direct one, counter-clockwise from start to end, matching what the angle form of the call already drew.
 
