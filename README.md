@@ -32,6 +32,9 @@ This package is **by no means definitive**. Improvements and features are planne
 - Point labels accept numeric offsets in their position: `ctz-draw-labels(A: "above+1.2 left+0.5")` nudges a label exactly where it belongs when the automatic placement puts it too close to its point (issue #6).
 - `ctz-draw-labels` no longer needs the point list when positions are given: `ctz-draw-labels(A: "below left", B: "above")` labels A and B. Writing the names twice was pure repetition, and the short form used to draw nothing at all (issue #5).
 
+#### Fixed
+- An arc named by two points swept the wrong way whenever its end lay past the half turn ([#4](https://github.com/nathan-ed/typst-package-ctz-euclide/issues/4), second report). `calc.atan2` answers in (-180, 180], so an end at 250° arrived as -110° and cetz drew the long way round clockwise, landing on top of unrelated arcs; reversing the two points drew the same arc again instead of its complement. An arc given two points is now the direct one, counter-clockwise from start to end, matching what the angle form of the call already drew.
+
 #### Changed
 - Trailing digits in a point name are set as a subscript: `I1` renders as I₁, `P12` as P₁₂, the way they are written on paper and the way tkz-euclide sets them (issue #6). Names without digits are unchanged.
 

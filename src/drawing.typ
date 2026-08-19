@@ -1159,6 +1159,15 @@
     // Apply delta extension
     let start-deg = if type(start-angle) == angle { start-angle } else { start-angle * 1deg }
     let end-deg = if type(end-angle) == angle { end-angle } else { end-angle * 1deg }
+
+    // calc.atan2 answers in (-180, 180], so an arc whose end lies past the half
+    // turn comes back as a negative angle and cetz then sweeps the long way
+    // round, clockwise: C at 150 deg to D at 250 deg arrived as 150 to -110.
+    // An arc named by two points is the direct one, counter-clockwise from
+    // start to end, which is what the angle form of the call already does, so
+    // the end angle is lifted above the start.
+    if end-deg <= start-deg { end-deg = end-deg + 360deg }
+
     start-deg = start-deg - delta * 1deg
     end-deg = end-deg + delta * 1deg
 
